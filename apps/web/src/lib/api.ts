@@ -1,10 +1,15 @@
 import type {
   ApiError,
-  CreateSessionRequest,
-  CreateSessionResponse,
+  Course,
+  CourseInput,
+  CreateTeacherRequest,
+  Me,
   PublicSession,
   SessionAction,
+  TeacherSession,
+  TeacherSummary,
 } from '@ct/shared';
+import { accessToken } from './supabase';
 
 export class HttpError extends Error {
   constructor(
@@ -15,10 +20,17 @@ export class HttpError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
+  const token = await accessToken();
+  const { json, ...rest } = init;
   const res = await fetch(path, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init.headers },
+    ...rest,
+    headers: {
+      ...(json === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...rest.headers,
+    },
+    body: json === undefined ? rest.body : JSON.stringify(json),
   });
   const body = (await res.json().catch(() => null)) as T | ApiError | null;
   if (!res.ok) {
@@ -29,35 +41,23 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  createSession: (input: CreateSessionRequest) =>
-    request<CreateSessionResponse>('/api/sessions', { method: 'POST', body: JSON.stringify(input) }),
+  me: () => request<Me>('/api/me'),
+
+  teachers: () => request<TeacherSummary[]>('/api/teachers'),
+  createTeacher: (input: CreateTeacherRequest) =>
+    request<TeacherSummary>('/api/teachers', { method: 'POST', json: input }),
+
+  courses: () => request<Course[]>('/api/courses'),
+  createCourse: (input: CourseInput) => request<Course>('/api/courses', { method: 'POST', json: input }),
+  updateCourse: (id: string, input: CourseInput) =>
+    request<Course>(`/api/courses/${encodeURIComponent(id)}`, { method: 'PATCH', json: input }),
+
+  openSessions: () => request<TeacherSession[]>('/api/sessions'),
+  createSession: (courseId: string) =>
+    request<TeacherSession>('/api/sessions', { method: 'POST', json: { courseId } }),
   publicSession: (id: string) => request<PublicSession>(`/api/sessions/${encodeURIComponent(id)}/public`),
-  action: (id: string, action: SessionAction, token: string) =>
-    request<{ session: PublicSession }>(`/api/sessions/${encodeURIComponent(id)}/${action}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: '{}',
-    }),
-};
-
-// Sin login en F0–F2: el token del profesor se guarda en este navegador.
-const tokenKey = (id: string) => `ct:teacher:${id}`;
-
-export const teacherTokens = {
-  get: (id: string) => {
-    try {
-      return localStorage.getItem(tokenKey(id));
-    } catch {
-      return null;
-    }
-  },
-  set: (id: string, token: string) => {
-    try {
-      localStorage.setItem(tokenKey(id), token);
-    } catch {
-      /* almacenamiento bloqueado: el token vive solo en esta pestaña */
-    }
-  },
+  action: (id: string, action: SessionAction) =>
+    request<TeacherSession>(`/api/sessions/${encodeURIComponent(id)}/${action}`, { method: 'POST', json: {} }),
 };
 
 export function studentUrl(id: string) {

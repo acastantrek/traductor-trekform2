@@ -2,6 +2,7 @@ import { isLanguage, WS_CLOSE } from '@ct/shared';
 import type { FastifyInstance } from 'fastify';
 import WebSocket from 'ws';
 import { z } from 'zod';
+import type { AuthVerifier } from '../db/types.js';
 import type { SessionRegistry } from '../domain/registry.js';
 import type { StudentClient, TeacherClient } from '../domain/session.js';
 
@@ -11,7 +12,7 @@ const HELLO_TIMEOUT_MS = 5000;
 const MAX_BUFFERED_BYTES = 1024 * 1024;
 
 const teacherMessage = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('hello'), token: z.string().max(256) }),
+  z.object({ type: z.literal('hello'), token: z.string().max(4096) }),
   z.object({ type: z.literal('audio.start'), sampleRate: z.number().int().min(8000).max(96000) }),
   z.object({ type: z.literal('audio.stop') }),
 ]);
@@ -45,7 +46,7 @@ function sender(socket: WebSocket) {
   };
 }
 
-export function registerWebSockets(app: FastifyInstance, registry: SessionRegistry) {
+export function registerWebSockets(app: FastifyInstance, registry: SessionRegistry, auth: AuthVerifier) {
   app.get('/ws/teacher/:id', { websocket: true }, (socket, req) => {
     const { id } = req.params as { id: string };
     const session = registry.get(id);
@@ -54,6 +55,11 @@ export function registerWebSockets(app: FastifyInstance, registry: SessionRegist
 
     const client: TeacherClient = { send: sender(socket) };
     let authed = false;
+    let authenticating = false;
+    // Último audio.start/stop recibido mientras se verificaba el token.
+    let pendingAudio: { sampleRate?: number } | undefined;
+    const applyAudio = (msg: { sampleRate?: number }) =>
+      msg.sampleRate ? session.audioStart(msg.sampleRate) : session.audioStop();
     const helloTimer = setTimeout(() => {
       if (!authed) socket.close(WS_CLOSE.unauthorized, 'hello timeout');
     }, HELLO_TIMEOUT_MS);
@@ -69,17 +75,31 @@ export function registerWebSockets(app: FastifyInstance, registry: SessionRegist
       const msg = teacherMessage.safeParse(parseJson(raw));
       if (!msg.success) return socket.close(WS_CLOSE.badRequest, 'invalid message');
       if (msg.data.type === 'hello') {
-        if (authed) return;
-        if (!session.verifyTeacher(msg.data.token))
-          return socket.close(WS_CLOSE.unauthorized, 'invalid token');
-        authed = true;
-        clearTimeout(helloTimer);
-        session.addTeacher(client);
+        if (authed || authenticating) return;
+        authenticating = true;
+        void auth.verify(msg.data.token).then(
+          (user) => {
+            authenticating = false;
+            if (socket.readyState !== WebSocket.OPEN) return;
+            if (!user || !session.canControl(user))
+              return socket.close(WS_CLOSE.unauthorized, 'invalid token');
+            authed = true;
+            clearTimeout(helloTimer);
+            session.addTeacher(client);
+            if (pendingAudio) applyAudio(pendingAudio);
+            pendingAudio = undefined;
+          },
+          () => socket.close(WS_CLOSE.unauthorized, 'auth unavailable'),
+        );
+        return;
+      }
+      const audio = msg.data.type === 'audio.start' ? { sampleRate: msg.data.sampleRate } : {};
+      if (authenticating) {
+        pendingAudio = audio;
         return;
       }
       if (!authed) return socket.close(WS_CLOSE.unauthorized, 'hello required');
-      if (msg.data.type === 'audio.start') session.audioStart(msg.data.sampleRate);
-      else session.audioStop();
+      applyAudio(audio);
     });
     socket.on('close', () => {
       clearTimeout(helloTimer);

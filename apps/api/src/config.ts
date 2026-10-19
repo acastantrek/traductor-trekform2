@@ -14,6 +14,8 @@ const schema = z.object({
   DEEPGRAM_API_KEY: optional,
   DEEPGRAM_MODEL: z.string().default('nova-3'),
   GOOGLE_TRANSLATE_API_KEY: optional,
+  SUPABASE_URL: z.string().url({ message: 'SUPABASE_URL es obligatoria (npx supabase status)' }),
+  SUPABASE_SECRET_KEY: z.string().min(1, 'SUPABASE_SECRET_KEY es obligatoria (npx supabase status)'),
   LANGUAGE_GRACE_MS: z.coerce.number().int().nonnegative().default(15000),
   MAX_STUDENTS_PER_SESSION: z.coerce.number().int().positive().default(150),
   BUFFER_SIZE: z.coerce.number().int().positive().default(50),
@@ -37,6 +39,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     allowedOrigins: e.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
     stt: { provider: stt, apiKey: e.DEEPGRAM_API_KEY, model: e.DEEPGRAM_MODEL },
     translation: { provider: translation, apiKey: e.GOOGLE_TRANSLATE_API_KEY },
+    supabase: { url: e.SUPABASE_URL, secretKey: e.SUPABASE_SECRET_KEY },
     session: {
       graceMs: e.LANGUAGE_GRACE_MS,
       maxStudents: e.MAX_STUDENTS_PER_SESSION,

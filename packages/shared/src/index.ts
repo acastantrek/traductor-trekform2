@@ -33,6 +33,42 @@ export type SessionStatus = 'ready' | 'live' | 'paused' | 'ended';
 export const MAX_TARGET_LANGUAGES = 8;
 
 // ---------- REST ----------
+// Rutas de profesor/admin: `Authorization: Bearer <access token de Supabase Auth>`.
+
+export type UserRole = 'teacher' | 'admin';
+
+export interface Me {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+}
+
+export type TeacherSummary = Me;
+
+/** POST /api/teachers (admin). */
+export interface CreateTeacherRequest {
+  email: string;
+  fullName: string;
+  password: string;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  sourceLanguage: SourceLanguage;
+  targetLanguages: Language[];
+  teacherIds: string[];
+  createdAt: string;
+}
+
+/** POST /api/courses y PATCH /api/courses/:id (admin). */
+export interface CourseInput {
+  name: string;
+  sourceLanguage: SourceLanguage;
+  targetLanguages: Language[];
+  teacherIds: string[];
+}
 
 export interface PublicSession {
   id: string;
@@ -42,16 +78,15 @@ export interface PublicSession {
   status: SessionStatus;
 }
 
-export interface CreateSessionRequest {
-  title: string;
-  sourceLanguage: Language;
-  targetLanguages: Language[];
+/** Sesión vista por su profesor (GET /api/sessions, POST /api/sessions). */
+export interface TeacherSession extends PublicSession {
+  courseId: string;
+  teacherId: string;
 }
 
-export interface CreateSessionResponse {
-  session: PublicSession;
-  /** Secreto de control del profesor. Se envía en `Authorization: Bearer` y en el `hello` del WS. */
-  teacherToken: string;
+/** POST /api/sessions: los idiomas salen de la configuración del curso. */
+export interface CreateSessionRequest {
+  courseId: string;
 }
 
 export type SessionAction = 'start' | 'pause' | 'resume' | 'end';
@@ -98,7 +133,7 @@ export interface LanguageSetMessage {
 export type StudentClientMessage = LanguageSetMessage;
 
 // ---------- WebSocket profesor: /ws/teacher/:id ----------
-// Tras abrir: mensaje `hello` con el token. Después `audio.start` y frames
+// Tras abrir: mensaje `hello` con el access token de Supabase. Después `audio.start` y frames
 // binarios PCM16 LE mono a `sampleRate`.
 
 export type TeacherClientMessage =
@@ -137,7 +172,7 @@ export interface TranscriptFinalEvent {
 
 export interface ReadyEvent {
   type: 'ready';
-  session: PublicSession;
+  session: TeacherSession;
 }
 
 export type TeacherServerEvent =

@@ -1,13 +1,20 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
+import { createAdminClient, SupabaseAuthVerifier, SupabaseRepository } from './db/supabase.js';
 import { createProviders } from './providers/index.js';
 
 const config = loadConfig();
 const { stt, translator } = createProviders(config);
-const { app } = await buildApp({ config, stt, translator });
+const db = createAdminClient(config.supabase.url, config.supabase.secretKey);
+const repo = new SupabaseRepository(db);
+const { app } = await buildApp({ config, stt, translator, repo, auth: new SupabaseAuthVerifier(db) });
 
 if (stt.name === 'mock' || translator.name === 'mock')
-  app.log.warn(`Proveedores mock activos (stt=${stt.name}, translation=${translator.name}). Configura apps/api/.env para usar los reales.`);
+  app.log.warn(`Proveedores mock activos (stt=${stt.name}, translation=${translator.name}). Configura .env para usar los reales.`);
+
+// Las sesiones en directo viven en memoria: tras un reinicio, las abiertas en BD quedan huérfanas.
+const orphans = await repo.closeOrphanSessions();
+if (orphans) app.log.warn(`${orphans} sesiones abiertas de una ejecución anterior marcadas como finalizadas`);
 
 const shutdown = async () => {
   await app.close();

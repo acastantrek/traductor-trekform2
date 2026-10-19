@@ -1,4 +1,13 @@
-import type { Language } from '@ct/shared';
+import { randomUUID } from 'node:crypto';
+import type { Course, CourseInput, CreateTeacherRequest, Language, SessionStatus } from '@ct/shared';
+import {
+  ConflictError,
+  type AuthUser,
+  type AuthVerifier,
+  type Repository,
+  type SessionMetrics,
+  type SessionRow,
+} from '../src/db/types.js';
 import type {
   SpeechToTextProvider,
   SttStreamHandlers,
@@ -42,6 +51,84 @@ export class FakeTranslator implements TranslationProvider {
     this.calls.push({ text, target });
     if (this.failFor.has(target)) throw new Error('boom');
     return `${target}:${text}`;
+  }
+}
+
+/** Tokens de prueba: el token es el id del usuario. */
+export class FakeAuth implements AuthVerifier {
+  constructor(private users: Map<string, AuthUser>) {}
+  async verify(token: string) {
+    return this.users.get(token) ?? null;
+  }
+}
+
+/** Repositorio en memoria con la misma semántica que el de Supabase. */
+export class MemoryRepository implements Repository {
+  users = new Map<string, AuthUser>();
+  courses = new Map<string, Course>();
+  sessions = new Map<string, SessionRow & { status: SessionStatus }>();
+  metrics = new Map<string, SessionMetrics>();
+
+  addUser(role: AuthUser['role'], name: string = role): AuthUser {
+    const user: AuthUser = { id: randomUUID(), email: `${name}@test.local`, fullName: name, role };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async listTeachers() {
+    return [...this.users.values()];
+  }
+
+  async createTeacher(input: CreateTeacherRequest) {
+    if ([...this.users.values()].some((u) => u.email === input.email)) throw new ConflictError('duplicado');
+    const user: AuthUser = { id: randomUUID(), email: input.email, fullName: input.fullName, role: 'teacher' };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async listCourses(user: AuthUser) {
+    return [...this.courses.values()].filter((c) => user.role === 'admin' || c.teacherIds.includes(user.id));
+  }
+
+  async getCourse(id: string) {
+    return this.courses.get(id) ?? null;
+  }
+
+  async createCourse(input: CourseInput) {
+    const course: Course = { ...input, id: randomUUID(), createdAt: new Date().toISOString() };
+    this.courses.set(course.id, course);
+    return course;
+  }
+
+  async updateCourse(id: string, input: CourseInput) {
+    const current = this.courses.get(id);
+    if (!current) return null;
+    const course = { ...current, ...input };
+    this.courses.set(id, course);
+    return course;
+  }
+
+  async createSession(row: SessionRow) {
+    this.sessions.set(row.id, { ...row, status: 'ready' });
+  }
+
+  async updateSessionStatus(id: string, status: SessionStatus) {
+    const s = this.sessions.get(id);
+    if (s) s.status = status;
+  }
+
+  async saveSessionMetrics(id: string, metrics: SessionMetrics) {
+    this.metrics.set(id, metrics);
+  }
+
+  async closeOrphanSessions() {
+    let n = 0;
+    for (const s of this.sessions.values())
+      if (s.status !== 'ended') {
+        s.status = 'ended';
+        n++;
+      }
+    return n;
   }
 }
 

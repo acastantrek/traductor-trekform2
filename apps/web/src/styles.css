@@ -51,6 +51,11 @@ h1 {
   margin: 0;
 }
 
+h3 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
 h2 {
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -221,6 +226,113 @@ select {
 .hint {
   color: var(--warn);
   margin: 0;
+}
+
+.success {
+  color: var(--ok);
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.row.spread {
+  justify-content: space-between;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.course-card p {
+  margin: 0;
+}
+
+.link-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link-card:hover {
+  border-color: var(--accent);
+}
+
+.admin .card p {
+  margin: 4px 0 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Barra de la app ---------- */
+
+.appbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.appbar-brand {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.appbar-nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.appbar-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.appbar-nav a.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.appbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ---------- Profesor ---------- */

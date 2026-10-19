@@ -1,0 +1,1 @@
+-- Datos de desarrollo: los usuarios se crean con 'npm run user:create' (ver README).

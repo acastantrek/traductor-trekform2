@@ -1,12 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import type { CreateSessionRequest } from '@ct/shared';
-import { hashToken, Session, type SessionDeps, type SessionOptions } from './session.js';
+import type { UserRole } from '@ct/shared';
+import { Session, type SessionDeps, type SessionInit, type SessionOptions } from './session.js';
 
 export interface RegistryLimits {
   maxSessions: number;
   /** Tiempo que una sesión finalizada sigue respondiendo "ended" antes de borrarse. */
   endedTtlMs: number;
-  /** Sesiones sin clientes ni actividad durante este tiempo se descartan. */
+  /** Sesiones sin clientes ni actividad durante este tiempo se finalizan. */
   idleTtlMs: number;
 }
 
@@ -17,8 +17,8 @@ const DEFAULT_LIMITS: RegistryLimits = {
 };
 
 /**
- * Sesiones en memoria. Suficiente para F0–F2 con un único proceso;
- * en F3 la configuración persistente pasa a Supabase.
+ * Sesiones en directo, en memoria (un único proceso). La configuración y el
+ * historial persistentes viven en Supabase; aquí solo el estado realtime.
  */
 export class SessionRegistry {
   private sessions = new Map<string, Session>();
@@ -33,22 +33,22 @@ export class SessionRegistry {
     this.sweeper.unref();
   }
 
-  create(input: CreateSessionRequest): { session: Session; teacherToken: string } | null {
+  get full() {
     this.sweep();
-    if (this.sessions.size >= this.limits.maxSessions) return null;
+    return this.sessions.size >= this.limits.maxSessions;
+  }
+
+  create(init: Omit<SessionInit, 'id'>): Session {
     const id = randomBytes(9).toString('base64url');
-    const teacherToken = randomBytes(24).toString('base64url');
-    const session = new Session(
-      id,
-      input.title,
-      input.sourceLanguage,
-      input.targetLanguages,
-      hashToken(teacherToken),
-      this.deps,
-      this.options,
-    );
+    const session = new Session({ ...init, id }, this.deps, this.options);
     this.sessions.set(id, session);
-    return { session, teacherToken };
+    return session;
+  }
+
+  /** Para deshacer una creación cuyo guardado en BD falló. */
+  discard(id: string) {
+    this.sessions.get(id)?.dispose();
+    this.sessions.delete(id);
   }
 
   get(id: string) {
@@ -59,20 +59,29 @@ export class SessionRegistry {
     return this.sessions.size;
   }
 
+  /** Sesiones abiertas que el usuario puede operar. */
+  openFor(user: { id: string; role: UserRole }) {
+    return [...this.sessions.values()].filter((s) => s.status !== 'ended' && s.canControl(user));
+  }
+
   sweep(now = Date.now()) {
     for (const [id, s] of this.sessions) {
-      const expiredEnded = s.endedAt !== undefined && now - s.endedAt > this.limits.endedTtlMs;
-      const idle = s.connectedCount === 0 && now - s.lastActivityAt > this.limits.idleTtlMs;
-      if (expiredEnded || idle) {
+      if (s.endedAt === undefined && s.connectedCount === 0 && now - s.lastActivityAt > this.limits.idleTtlMs)
+        s.transition('end');
+      if (s.endedAt !== undefined && now - s.endedAt > this.limits.endedTtlMs) {
         s.dispose();
         this.sessions.delete(id);
       }
     }
   }
 
+  /** Cierre ordenado del servidor: finaliza las sesiones abiertas para persistir sus métricas. */
   close() {
     clearInterval(this.sweeper);
-    for (const s of this.sessions.values()) s.dispose();
+    for (const s of this.sessions.values()) {
+      if (s.status !== 'ended') s.transition('end');
+      s.dispose();
+    }
     this.sessions.clear();
   }
 }

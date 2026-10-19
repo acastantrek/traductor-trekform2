@@ -7,12 +7,15 @@
     "dev": "tsx watch --env-file-if-exists=../../.env --env-file-if-exists=.env src/index.ts",
     "start": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/index.ts",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "user:create": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env scripts/create-user.ts",
+    "test:db": "node --env-file-if-exists=../../.env --env-file-if-exists=../web/.env --env-file-if-exists=.env ../../node_modules/vitest/vitest.mjs run --config vitest.db.config.ts"
   },
   "dependencies": {
     "@ct/shared": "*",
     "@fastify/cors": "^11.0.0",
     "@fastify/websocket": "^11.0.0",
+    "@supabase/supabase-js": "^2.118.0",
     "fastify": "^5.0.0",
     "ws": "^8.18.0",
     "zod": "^4.0.0"

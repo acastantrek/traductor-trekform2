@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   WS_CLOSE,
   type AudienceEvent,
@@ -12,7 +11,10 @@ import {
   type SubtitleBacklogEvent,
   type SubtitleEvent,
   type TeacherServerEvent,
+  type TeacherSession,
+  type UserRole,
 } from '@ct/shared';
+import type { SessionMetrics } from '../db/types.js';
 import type { SpeechToTextProvider, SttStream, TranslationProvider } from '../providers/types.js';
 import { LatencyTracker } from './latency.js';
 import { Segmenter, type Segment } from './segmenter.js';
@@ -29,6 +31,17 @@ export interface StudentClient {
 export interface SessionDeps {
   stt: SpeechToTextProvider;
   translator: TranslationProvider;
+  /** Persistencia de cambios de estado (sin bloquear el pipeline). */
+  onStatus?: (session: Session, status: SessionStatus) => void;
+}
+
+export interface SessionInit {
+  id: string;
+  courseId: string;
+  teacherId: string;
+  title: string;
+  sourceLanguage: Language;
+  targetLanguages: Language[];
 }
 
 export interface SessionOptions {
@@ -59,10 +72,6 @@ const BREAKER_THRESHOLD = 3;
 const BREAKER_COOLDOWN_MS = 30_000;
 const AUDIO_STALE_MS = 2000;
 
-export function hashToken(token: string) {
-  return createHash('sha256').update(token).digest();
-}
-
 /**
  * Una clase en directo: estado, audiencia por idioma, pipeline
  * audio → STT → segmentos → traducción por idioma activo → fan-out.
@@ -71,9 +80,19 @@ export class Session {
   status: SessionStatus = 'ready';
   readonly createdAt = Date.now();
   lastActivityAt = Date.now();
+  startedAt: number | undefined;
   endedAt: number | undefined;
   readonly latency = new LatencyTracker();
   readonly stats = { segments: 0, translations: 0, charsTranslated: 0, providerErrors: 0, sttReconnects: 0 };
+  private peakStudents = 0;
+  private languagesUsed = new Set<Language>();
+
+  readonly id: string;
+  readonly courseId: string;
+  readonly teacherId: string;
+  readonly title: string;
+  readonly sourceLanguage: Language;
+  readonly targetLanguages: Language[];
 
   private teachers = new Set<TeacherClient>();
   private students = new Map<StudentClient, Language>();
@@ -97,14 +116,16 @@ export class Session {
   private segmenter: Segmenter;
 
   constructor(
-    readonly id: string,
-    readonly title: string,
-    readonly sourceLanguage: Language,
-    readonly targetLanguages: Language[],
-    private tokenHash: Buffer,
+    init: SessionInit,
     private deps: SessionDeps,
     private options: SessionOptions,
   ) {
+    this.id = init.id;
+    this.courseId = init.courseId;
+    this.teacherId = init.teacherId;
+    this.title = init.title;
+    this.sourceLanguage = init.sourceLanguage;
+    this.targetLanguages = init.targetLanguages;
     this.segmenter = new Segmenter(
       (segment) => this.onSegment(segment),
       (text) => this.toTeachers({ type: 'transcript.partial', text }),
@@ -115,8 +136,9 @@ export class Session {
     this.healthTimer.unref();
   }
 
-  verifyTeacher(token: string) {
-    return timingSafeEqual(hashToken(token), this.tokenHash);
+  /** Solo el profesor que la creó o un admin pueden operar la sesión. */
+  canControl(user: { id: string; role: UserRole }) {
+    return user.role === 'admin' || user.id === this.teacherId;
   }
 
   get allowedLanguages(): Language[] {
@@ -137,6 +159,28 @@ export class Session {
     };
   }
 
+  teacherView(): TeacherSession {
+    return { ...this.public(), courseId: this.courseId, teacherId: this.teacherId };
+  }
+
+  metrics(): SessionMetrics {
+    const end = this.endedAt ?? Date.now();
+    const latency = this.latency.snapshot();
+    return {
+      durationSeconds: this.startedAt ? Math.round((end - this.startedAt) / 1000) : 0,
+      audioSeconds: Math.round((this.offsetMs + this.streamAudioMs) / 100) / 10,
+      segments: this.stats.segments,
+      translations: this.stats.translations,
+      charsTranslated: this.stats.charsTranslated,
+      latencyMedianMs: latency.medianMs,
+      latencyP95Ms: latency.p95Ms,
+      providerErrors: this.stats.providerErrors,
+      sttReconnects: this.stats.sttReconnects,
+      peakStudents: this.peakStudents,
+      languagesUsed: [...this.languagesUsed],
+    };
+  }
+
   // ---------- Control de sesión (FR-13, FR-14) ----------
 
   transition(action: SessionAction): boolean {
@@ -144,7 +188,10 @@ export class Session {
     if (!rule.from.includes(this.status)) return false;
     this.status = rule.to;
     this.lastActivityAt = Date.now();
-    if (rule.to === 'live') this.openStream();
+    if (rule.to === 'live') {
+      this.startedAt ??= Date.now();
+      this.openStream();
+    }
     if (rule.to === 'paused') {
       this.closeStream();
       this.segmenter.flush();
@@ -158,6 +205,7 @@ export class Session {
       for (const client of this.students.keys()) client.close(WS_CLOSE.ended, 'session ended');
       this.students.clear();
     }
+    this.deps.onStatus?.(this, this.status);
     return true;
   }
 
@@ -166,7 +214,7 @@ export class Session {
   addTeacher(client: TeacherClient) {
     this.teachers.add(client);
     this.lastActivityAt = Date.now();
-    client.send({ type: 'ready', session: this.public() });
+    client.send({ type: 'ready', session: this.teacherView() });
     client.send({ type: 'session.status', status: this.status });
     client.send(this.audience());
     client.send(this.health());
@@ -208,6 +256,8 @@ export class Session {
     const wasActive = this.isActive(language);
     this.students.set(client, language);
     this.lastActivityAt = Date.now();
+    this.peakStudents = Math.max(this.peakStudents, this.students.size);
+    this.languagesUsed.add(language);
     this.onLanguageJoined(language, wasActive);
     client.send({ type: 'session.status', status: this.status });
     client.send(this.backlog(language, since));
@@ -221,6 +271,7 @@ export class Session {
     if (previous !== language) {
       const wasActive = this.isActive(language);
       this.students.set(client, language);
+      this.languagesUsed.add(language);
       this.onLanguageLeft(previous);
       this.onLanguageJoined(language, wasActive);
       this.toTeachers(this.audience());

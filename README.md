@@ -1,38 +1,59 @@
 # ClassTranslate
 
-Subtítulos traducidos en tiempo real para clases presenciales. El profesor habla y cada alumno lee la traducción en su móvil, entrando por QR. Requisitos en [docs/prd_classtranslate.md](docs/prd_classtranslate.md).
+Subtítulos traducidos en tiempo real para clases presenciales. El profesor habla y cada alumno lee la traducción en su móvil, entrando por QR. Requisitos en [docs/prd_classtranslate.md](docs/prd_classtranslate.md). Pendientes en [docs/deferred-work.md](docs/deferred-work.md).
 
-Estado: **F0–F2** (micrófono → STT → traducción → sala multiusuario con QR). Sin login ni base de datos todavía (F3).
+Estado: **F0–F3**. Incluye pipeline de audio → STT → traducción → sala con QR, login de profesores (email + contraseña), cursos, sesiones persistidas y métricas agregadas.
 
 ## Estructura
 
 ```
-apps/api         Fastify + WebSocket: sesiones en memoria, pipeline STT → segmentos → traducción → fan-out
-apps/web         React + Vite: /  (crear clase) · /t/:id (panel profesor) · /s/:id (alumno)
-packages/shared  Contrato REST/WS compartido (tipos de eventos, idiomas)
-docs/            PRD
+apps/api         Fastify + WebSocket. Sesiones en directo en memoria; cursos, sesiones y métricas en Supabase
+apps/web         React + Vite: /login · / (mis cursos) · /admin · /t/:id (panel profesor) · /s/:id (alumno, sin cuenta)
+packages/shared  Contrato REST/WS compartido (tipos, idiomas)
+supabase/        config.toml (puertos 556xx) y migraciones
+docs/            PRD y trabajo pendiente
 ```
 
-## Arranque
+## Arranque local
+
+Requisitos: Node 24 y Docker Desktop abierto.
 
 ```bash
 npm install
-cp apps/api/.env.example apps/api/.env   # opcional: claves reales
-npm run dev                              # api :3001 + web :5173
+npx supabase start          # Supabase local en 556xx (API 55621, DB 55622, Studio 55623)
 ```
 
-Sin claves, el backend usa proveedores **mock**: una frase de ejemplo cada ~3 s de audio y traducciones `[en] …`. Con `DEEPGRAM_API_KEY` y `GOOGLE_TRANSLATE_API_KEY` en `apps/api/.env` usa los reales. `GET /api/health` indica cuáles están activos.
+Crea los `.env` con los valores de `npx supabase status`:
 
-Móviles en la misma red: abre el panel con la IP del portátil (`http://192.168.x.x:5173`) o define `VITE_PUBLIC_APP_URL` en `apps/web/.env` para que el QR apunte ahí. El micrófono del profesor solo funciona en `localhost` o HTTPS.
+| Archivo | Variables |
+|---|---|
+| `apps/api/.env` | `SUPABASE_URL` (API_URL), `SUPABASE_SECRET_KEY` (SECRET_KEY) |
+| `apps/web/.env` | `VITE_SUPABASE_URL` (API_URL), `VITE_SUPABASE_PUBLISHABLE_KEY` (PUBLISHABLE_KEY) |
+| `.env` (raíz) | `DEEPGRAM_API_KEY`, `GOOGLE_TRANSLATE_API_KEY` (opcionales) |
+
+El registro público está desactivado. Crea el primer admin:
+
+```bash
+npm run user:create -w @ct/api -- --email tu@email --password 'min-8-caracteres' --name 'Tu nombre' --admin
+npm run dev                 # api :3001 + web :5173
+```
+
+Desde `/admin` el admin crea profesores y cursos (idioma del profesor: castellano o catalán, idiomas de destino y profesores asignados). Cada profesor ve sus cursos, pulsa *Preparar clase* y en el panel *Iniciar clase*.
+
+Sin claves de proveedor, el backend usa **mocks**: una frase de ejemplo cada ~3 s de audio y traducciones `[en] …`. `GET /api/health` indica qué proveedores están activos.
+
+Móviles en la misma red: abre el panel con la IP del portátil o define `VITE_PUBLIC_APP_URL` en `apps/web/.env` para que el QR apunte ahí. El micrófono del profesor solo funciona en `localhost` o HTTPS.
 
 ## Scripts
 
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | API y web en modo desarrollo |
-| `npm test` | Tests del backend (Vitest) |
+| `npm test` | Tests unitarios y de API (sin dependencias externas) |
+| `npm run test:db -w @ct/api` | Integración contra Supabase **local** (se niega a correr contra otra URL) |
 | `npm run typecheck` | TypeScript en todos los paquetes |
 | `npm run build` | Build de producción de la web |
+| `npm run user:create -w @ct/api -- …` | Crear usuario (profesor o `--admin`) |
 
 ## Diseño
 
@@ -41,4 +62,7 @@ Móviles en la misma red: abre el panel con la IP del portátil (`http://192.168
 - Buffer de los últimos `BUFFER_SIZE` segmentos para reconectar con `?since=<seq>` (FR-12).
 - Pausa y fin cierran el stream STT. Sin profesor conectado tampoco hay stream abierto.
 - El fallo de un idioma no corta los demás. Hay un circuit breaker por idioma (3 fallos → 30 s).
-- Las claves de los proveedores solo están en el backend. El token de profesor se guarda hasheado y los logs no registran query strings ni contenido.
+- **Autenticación**: Supabase Auth en el navegador. La API valida el access token con `auth.getUser` y lee el rol de `profiles`. Solo el profesor de la sesión o un admin la controlan, también por WebSocket (`hello`).
+- **Datos**: todo acceso a tablas pasa por la API con la secret key. RLS activado sin políticas para `anon` y `authenticated`, así que el navegador no puede leer ni escribir directamente.
+- **Privacidad (PRD §10)**: no se guarda audio ni texto. En la BD solo quedan cursos, sesiones (estado y fechas) y métricas agregadas (duración, segmentos, caracteres, latencia mediana/p95, errores, pico de alumnos, idiomas usados).
+- Al arrancar, la API marca como finalizadas las sesiones abiertas de una ejecución anterior, porque el estado en directo vive en memoria.

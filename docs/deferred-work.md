@@ -9,9 +9,9 @@ Tareas aplazadas conscientemente. Al retomar una, se mueve a hecho o se borra.
 - **Motivo del aplazamiento:** no se podía probar con micrófono en ese momento.
 - **Estado:** `DEEPGRAM_API_KEY` configurada en `.env` (raíz). El backend arranca con `stt: deepgram`. Se ha comprobado que Deepgram acepta conexiones `nova-3` en `es` y `ca`, pero todavía no se ha probado con voz real.
 - **Cómo probar:**
-  1. `npm run dev` y abrir http://localhost:5173 (el micrófono solo funciona en `localhost`/HTTPS).
-  2. Crear una clase en castellano y otra en catalán.
-  3. *Probar micrófono* (el medidor debe moverse) → *Iniciar clase*.
+  1. `npx supabase start`, `npm run dev` y abrir http://localhost:5173 (el micrófono solo funciona en `localhost`/HTTPS).
+  2. Entrar con el admin local y crear en `/admin` un curso en castellano y otro en catalán, asignándote como profesor.
+  3. *Preparar clase* → *Probar micrófono* (el medidor debe moverse) → *Iniciar clase*.
   4. Hablar varias frases, incluidas negaciones, cifras y términos técnicos.
 - **Qué validar (PRD §14, F0):**
   - Precisión de la transcripción con el micrófono y la sala reales, en castellano y en catalán.

@@ -3,17 +3,19 @@ import {
   WS_CLOSE,
   type AudienceEvent,
   type HealthEvent,
-  type PublicSession,
   type ServiceState,
   type SessionAction,
   type SessionStatus,
   type TeacherServerEvent,
+  type TeacherSession,
 } from '@ct/shared';
 import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { AppHeader } from '../components/AppHeader';
 import { CAPTURE_SAMPLE_RATE, useMicrophone } from '../hooks/useMicrophone';
-import { api, studentUrl, teacherTokens } from '../lib/api';
+import { api, studentUrl } from '../lib/api';
+import { accessToken } from '../lib/supabase';
 import { connectSocket, wsUrl, type ReconnectingSocket, type SocketState } from '../lib/socket';
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
@@ -37,8 +39,7 @@ interface Line {
 
 export function Teacher() {
   const { id = '' } = useParams();
-  const token = teacherTokens.get(id);
-  const [session, setSession] = useState<PublicSession | null>(null);
+  const [session, setSession] = useState<TeacherSession | null>(null);
   const [status, setStatus] = useState<SessionStatus>('ready');
   const [health, setHealth] = useState<HealthEvent | null>(null);
   const [audience, setAudience] = useState<AudienceEvent | null>(null);
@@ -90,25 +91,32 @@ export function Teacher() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
     const s = connectSocket({
       url: () => wsUrl(`/ws/teacher/${encodeURIComponent(id)}`),
       onOpen: (ws) => {
-        ws.send(JSON.stringify({ type: 'hello', token }));
-        if (micActive.current) ws.send(JSON.stringify({ type: 'audio.start', sampleRate: CAPTURE_SAMPLE_RATE }));
+        // Token actual en cada (re)conexión: supabase-js lo renueva antes de caducar.
+        void accessToken().then((token) => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({ type: 'hello', token: token ?? '' }));
+          if (micActive.current) ws.send(JSON.stringify({ type: 'audio.start', sampleRate: CAPTURE_SAMPLE_RATE }));
+        });
       },
       onMessage: (data) => onEvent(data as TeacherServerEvent),
       onState: setSocketState,
       fatalCodes: [WS_CLOSE.notFound, WS_CLOSE.unauthorized],
       onFatal: (code) =>
-        setFatal(code === WS_CLOSE.notFound ? 'La sesión no existe o ha caducado.' : 'No tienes permiso para controlar esta sesión.'),
+        setFatal(
+          code === WS_CLOSE.notFound
+            ? 'La sesión no existe o ha caducado.'
+            : 'No tienes permiso para controlar esta sesión. Puede que sea de otro profesor.',
+        ),
     });
     socket.current = s;
     return () => {
       s.close();
       socket.current = null;
     };
-  }, [id, token, onEvent]);
+  }, [id, onEvent]);
 
   useEffect(() => {
     transcriptEnd.current?.scrollIntoView({ block: 'end' });
@@ -131,12 +139,11 @@ export function Teacher() {
   }
 
   async function act(action: SessionAction) {
-    if (!token) return;
     setBusy(true);
     setError('');
     try {
       if ((action === 'start' || action === 'resume') && !mic.active) await startMic();
-      const { session: s } = await api.action(id, action, token);
+      const s = await api.action(id, action);
       setStatus(s.status);
       if (action === 'end') stopMic();
     } catch (e) {
@@ -147,17 +154,20 @@ export function Teacher() {
     }
   }
 
-  if (!token || fatal) {
+  if (fatal) {
     return (
-      <main className="page narrow">
-        <div className="card stack">
-          <h1>No se puede abrir el panel</h1>
-          <p>{fatal || 'Este navegador no tiene el acceso de profesor para esta sesión.'}</p>
-          <Link className="btn" to="/">
-            Crear una clase nueva
-          </Link>
-        </div>
-      </main>
+      <>
+        <AppHeader />
+        <main className="page narrow">
+          <div className="card stack">
+            <h1>No se puede abrir el panel</h1>
+            <p>{fatal}</p>
+            <Link className="btn" to="/">
+              Volver a mis cursos
+            </Link>
+          </div>
+        </main>
+      </>
     );
   }
 
@@ -173,6 +183,8 @@ export function Teacher() {
         : 'idle';
 
   return (
+    <>
+    <AppHeader />
     <main className="page teacher">
       <header className="topbar">
         <div>
@@ -311,6 +323,7 @@ export function Teacher() {
         </div>
       </section>
     </main>
+    </>
   );
 }
 

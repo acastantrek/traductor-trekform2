@@ -1,20 +1,33 @@
-import type { CreateSessionResponse, StudentServerEvent } from '@ct/shared';
+import type { Course, StudentServerEvent, TeacherSession } from '@ct/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
-import { FakeStt, FakeTranslator, flush } from './helpers.js';
+import type { AuthUser } from '../src/db/types.js';
+import { FakeAuth, FakeStt, FakeTranslator, flush, MemoryRepository } from './helpers.js';
 
 let app: Awaited<ReturnType<typeof buildApp>>['app'];
 let base: string;
 let stt: FakeStt;
 let translator: FakeTranslator;
+let repo: MemoryRepository;
+let admin: AuthUser;
+let teacher: AuthUser;
+let outsider: AuthUser;
 
 beforeEach(async () => {
   stt = new FakeStt();
   translator = new FakeTranslator();
-  const config = loadConfig({ LANGUAGE_GRACE_MS: '50' });
-  ({ app } = await buildApp({ config, stt, translator, logger: false }));
+  repo = new MemoryRepository();
+  admin = repo.addUser('admin');
+  teacher = repo.addUser('teacher', 'ana');
+  outsider = repo.addUser('teacher', 'otro');
+  const config = loadConfig({
+    LANGUAGE_GRACE_MS: '50',
+    SUPABASE_URL: 'http://127.0.0.1:1',
+    SUPABASE_SECRET_KEY: 'test',
+  });
+  ({ app } = await buildApp({ config, stt, translator, repo, auth: new FakeAuth(repo.users), logger: false }));
   await app.listen({ port: 0, host: '127.0.0.1' });
   const address = app.server.address();
   base = typeof address === 'object' && address ? `127.0.0.1:${address.port}` : '';
@@ -24,21 +37,33 @@ afterEach(async () => {
   await app.close();
 });
 
-async function createSession(): Promise<CreateSessionResponse> {
-  const res = await fetch(`http://${base}/api/sessions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: 'Seguridad', sourceLanguage: 'es', targetLanguages: ['en', 'fr', 'es'] }),
+function call(method: string, path: string, user?: AuthUser, body?: unknown) {
+  return fetch(`http://${base}${path}`, {
+    method,
+    headers: {
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(user ? { Authorization: `Bearer ${user.id}` } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
-  expect(res.status).toBe(201);
-  return (await res.json()) as CreateSessionResponse;
 }
 
-function action(id: string, name: string, token: string) {
-  return fetch(`http://${base}/api/sessions/${id}/${name}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+async function createCourse(teacherIds = [teacher.id]): Promise<Course> {
+  const res = await call('POST', '/api/courses', admin, {
+    name: 'Seguridad en taller',
+    sourceLanguage: 'es',
+    targetLanguages: ['en', 'fr', 'es'],
+    teacherIds,
   });
+  expect(res.status).toBe(201);
+  return (await res.json()) as Course;
+}
+
+async function createSession(user = teacher): Promise<TeacherSession> {
+  const course = await createCourse();
+  const res = await call('POST', '/api/sessions', user, { courseId: course.id });
+  expect(res.status).toBe(201);
+  return (await res.json()) as TeacherSession;
 }
 
 function connect(path: string) {
@@ -53,44 +78,80 @@ function connect(path: string) {
   return { ws, messages, closed, opened };
 }
 
-describe('API + WebSocket', () => {
-  it('valida la creación de sesiones y quita el idioma de origen de los destinos', async () => {
-    const bad = await fetch(`http://${base}/api/sessions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: '', sourceLanguage: 'es', targetLanguages: [] }),
+describe('Auth y cursos', () => {
+  it('exige login y rol admin donde corresponde', async () => {
+    expect((await call('GET', '/api/me')).status).toBe(401);
+    expect(await (await call('GET', '/api/me', teacher)).json()).toMatchObject({ id: teacher.id, role: 'teacher' });
+    expect((await call('GET', '/api/teachers', teacher)).status).toBe(403);
+    expect((await call('POST', '/api/courses', teacher, {})).status).toBe(403);
+    expect((await call('GET', '/api/teachers', admin)).status).toBe(200);
+  });
+
+  it('FR-01: el admin crea cursos; el idioma de origen se quita de los destinos y solo es/ca', async () => {
+    const course = await createCourse();
+    expect(course.targetLanguages).toEqual(['en', 'fr']);
+    const bad = await call('POST', '/api/courses', admin, {
+      name: 'X',
+      sourceLanguage: 'en',
+      targetLanguages: ['fr'],
     });
     expect(bad.status).toBe(400);
-    const { session, teacherToken } = await createSession();
-    expect(session.targetLanguages).toEqual(['en', 'fr']);
-    expect(teacherToken.length).toBeGreaterThan(20);
-    const pub = await fetch(`http://${base}/api/sessions/${session.id}/public`);
-    expect(await pub.json()).toEqual(session);
   });
 
-  it('exige token de profesor para controlar la sesión', async () => {
-    const { session, teacherToken } = await createSession();
-    expect((await action(session.id, 'start', 'nope')).status).toBe(401);
-    expect((await action(session.id, 'pause', teacherToken)).status).toBe(409);
-    expect((await action(session.id, 'start', teacherToken)).status).toBe(200);
-    expect((await action('missing', 'start', teacherToken)).status).toBe(404);
+  it('cada profesor ve solo sus cursos; el admin ve todos', async () => {
+    await createCourse([teacher.id]);
+    await createCourse([outsider.id]);
+    expect(await (await call('GET', '/api/courses', teacher)).json()).toHaveLength(1);
+    expect(await (await call('GET', '/api/courses', admin)).json()).toHaveLength(2);
   });
 
-  it('flujo completo: profesor emite audio y dos alumnos en inglés reciben una sola traducción', async () => {
-    const { session, teacherToken } = await createSession();
-    const teacher = connect(`/ws/teacher/${session.id}`);
-    await teacher.opened;
-    teacher.ws.send(JSON.stringify({ type: 'hello', token: teacherToken }));
-    teacher.ws.send(JSON.stringify({ type: 'audio.start', sampleRate: 16000 }));
+  it('el admin crea profesores y no permite emails duplicados', async () => {
+    const body = { email: 'nuevo@test.local', fullName: 'Nuevo', password: 'contraseña-segura' };
+    expect((await call('POST', '/api/teachers', admin, body)).status).toBe(201);
+    expect((await call('POST', '/api/teachers', admin, body)).status).toBe(409);
+    expect((await call('POST', '/api/teachers', admin, { ...body, password: 'corta' })).status).toBe(400);
+  });
+});
+
+describe('Sesiones', () => {
+  it('FR-02: solo los profesores del curso pueden crear sesiones y toman los idiomas del curso', async () => {
+    const course = await createCourse();
+    expect((await call('POST', '/api/sessions', outsider, { courseId: course.id })).status).toBe(403);
+    const res = await call('POST', '/api/sessions', teacher, { courseId: course.id });
+    const session = (await res.json()) as TeacherSession;
+    expect(session).toMatchObject({ courseId: course.id, teacherId: teacher.id, targetLanguages: ['en', 'fr'] });
+    expect(repo.sessions.get(session.id)?.status).toBe('ready');
+    const open = (await (await call('GET', '/api/sessions', teacher)).json()) as TeacherSession[];
+    expect(open.map((s) => s.id)).toEqual([session.id]);
+    expect(await (await call('GET', '/api/sessions', outsider)).json()).toEqual([]);
+  });
+
+  it('solo el profesor de la sesión (o admin) la controla, y los estados se guardan', async () => {
+    const session = await createSession();
+    expect((await call('POST', `/api/sessions/${session.id}/start`)).status).toBe(401);
+    expect((await call('POST', `/api/sessions/${session.id}/start`, outsider)).status).toBe(403);
+    expect((await call('POST', `/api/sessions/${session.id}/pause`, teacher)).status).toBe(409);
+    expect((await call('POST', `/api/sessions/${session.id}/start`, teacher)).status).toBe(200);
+    expect((await call('POST', `/api/sessions/${session.id}/pause`, admin)).status).toBe(200);
+    await flush();
+    expect(repo.sessions.get(session.id)?.status).toBe('paused');
+  });
+
+  it('flujo completo: profesor emite audio, dos alumnos en inglés reciben una sola traducción y se guardan métricas', async () => {
+    const session = await createSession();
+    const t = connect(`/ws/teacher/${session.id}`);
+    await t.opened;
+    t.ws.send(JSON.stringify({ type: 'hello', token: teacher.id }));
+    t.ws.send(JSON.stringify({ type: 'audio.start', sampleRate: 16000 }));
 
     const a = connect(`/ws/student/${session.id}?lang=en`);
     const b = connect(`/ws/student/${session.id}?lang=en`);
     const f = connect(`/ws/student/${session.id}?lang=fr`);
     await Promise.all([a.opened, b.opened, f.opened]);
 
-    expect((await action(session.id, 'start', teacherToken)).status).toBe(200);
+    expect((await call('POST', `/api/sessions/${session.id}/start`, teacher)).status).toBe(200);
     await flush();
-    teacher.ws.send(Buffer.alloc(3200));
+    t.ws.send(Buffer.alloc(3200));
     await flush();
     expect(stt.bytes).toBe(3200);
 
@@ -104,20 +165,25 @@ describe('API + WebSocket', () => {
     expect(subtitles(b.messages)).toEqual(['en:Revisad el equipo.']);
     expect(subtitles(f.messages)).toEqual(['fr:Revisad el equipo.']);
     expect(translator.calls.filter((c) => c.target === 'en')).toHaveLength(1);
-    expect(teacher.messages).toContainEqual({ type: 'transcript.final', sequence: 1, text: 'Revisad el equipo.' });
+    expect(t.messages).toContainEqual({ type: 'transcript.final', sequence: 1, text: 'Revisad el equipo.' });
 
-    expect((await action(session.id, 'end', teacherToken)).status).toBe(200);
+    expect((await call('POST', `/api/sessions/${session.id}/end`, teacher)).status).toBe(200);
     expect(await a.closed).toBe(4410);
-    teacher.ws.close();
+    await flush();
+    expect(repo.sessions.get(session.id)?.status).toBe('ended');
+    expect(repo.metrics.get(session.id)).toMatchObject({ segments: 1, translations: 2, peakStudents: 3 });
+    t.ws.close();
   });
 
-  it('rechaza alumnos con idioma no permitido, sesiones inexistentes y profesores sin token válido', async () => {
-    const { session } = await createSession();
+  it('rechaza alumnos con idioma no permitido, sesiones inexistentes y profesores ajenos', async () => {
+    const session = await createSession();
     expect(await connect(`/ws/student/${session.id}?lang=de`).closed).toBe(4400);
     expect(await connect(`/ws/student/nope?lang=en`).closed).toBe(4404);
-    const teacher = connect(`/ws/teacher/${session.id}`);
-    await teacher.opened;
-    teacher.ws.send(JSON.stringify({ type: 'hello', token: 'wrong' }));
-    expect(await teacher.closed).toBe(4401);
+    for (const token of ['wrong', outsider.id]) {
+      const t = connect(`/ws/teacher/${session.id}`);
+      await t.opened;
+      t.ws.send(JSON.stringify({ type: 'hello', token }));
+      expect(await t.closed).toBe(4401);
+    }
   });
 });

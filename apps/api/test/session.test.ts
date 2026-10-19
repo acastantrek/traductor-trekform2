@@ -1,6 +1,6 @@
 import type { Language, StudentServerEvent, SubtitleEvent, TeacherServerEvent } from '@ct/shared';
 import { describe, expect, it } from 'vitest';
-import { hashToken, Session, type StudentClient } from '../src/domain/session.js';
+import { Session, type StudentClient } from '../src/domain/session.js';
 import { FakeStt, FakeTranslator, flush, options } from './helpers.js';
 
 function student() {
@@ -22,10 +22,15 @@ function student() {
 function setup(targets: Language[] = ['en', 'fr', 'ar']) {
   const stt = new FakeStt();
   const translator = new FakeTranslator();
-  const session = new Session('s1', 'Clase', 'es', targets, hashToken('secret'), { stt, translator }, options);
+  const statuses: string[] = [];
+  const session = new Session(
+    { id: 's1', courseId: 'c1', teacherId: 'teacher-1', title: 'Clase', sourceLanguage: 'es', targetLanguages: targets },
+    { stt, translator, onStatus: (_s, status) => statuses.push(status) },
+    options,
+  );
   const teacher: TeacherServerEvent[] = [];
   session.addTeacher({ send: (e) => teacher.push(e) });
-  return { stt, translator, session, teacher };
+  return { stt, translator, session, teacher, statuses };
 }
 
 async function goLive(s: ReturnType<typeof setup>) {
@@ -35,10 +40,27 @@ async function goLive(s: ReturnType<typeof setup>) {
 }
 
 describe('Session', () => {
-  it('verifica el token del profesor', () => {
+  it('solo el profesor de la sesión o un admin pueden operarla', () => {
     const { session } = setup();
-    expect(session.verifyTeacher('secret')).toBe(true);
-    expect(session.verifyTeacher('otro')).toBe(false);
+    expect(session.canControl({ id: 'teacher-1', role: 'teacher' })).toBe(true);
+    expect(session.canControl({ id: 'otro', role: 'teacher' })).toBe(false);
+    expect(session.canControl({ id: 'otro', role: 'admin' })).toBe(true);
+  });
+
+  it('AC-11: notifica cambios de estado y calcula métricas agregadas sin texto', async () => {
+    const s = setup();
+    s.session.addStudent(student(), 'en');
+    s.session.addStudent(student(), 'fr');
+    await goLive(s);
+    s.session.audio(Buffer.alloc(32000));
+    s.stt.emit({ text: 'Una frase.' });
+    await flush();
+    s.session.transition('end');
+    expect(s.statuses).toEqual(['live', 'ended']);
+    const m = s.session.metrics();
+    expect(m).toMatchObject({ audioSeconds: 1, segments: 1, translations: 2, peakStudents: 2, providerErrors: 0 });
+    expect(m.languagesUsed.sort()).toEqual(['en', 'fr']);
+    expect(JSON.stringify(m)).not.toContain('Una frase');
   });
 
   it('AC-05: dos alumnos del mismo idioma comparten una única traducción', async () => {
