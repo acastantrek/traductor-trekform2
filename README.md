@@ -1,6 +1,6 @@
 # ClassTranslate
 
-Subtítulos traducidos en tiempo real para clases presenciales. El profesor habla y cada alumno lee la traducción en su móvil, entrando por QR. Requisitos en [docs/prd_classtranslate.md](docs/prd_classtranslate.md). Pendientes en [docs/deferred-work.md](docs/deferred-work.md).
+Subtítulos traducidos en tiempo real para clases presenciales. El profesor habla y cada alumno lee la traducción en su móvil, entrando por QR. Requisitos en [docs/prd_classtranslate.md](docs/prd_classtranslate.md). Pendientes en [docs/deferred-work.md](docs/deferred-work.md). Despliegue en [docs/deploy.md](docs/deploy.md).
 
 Estado: **F0–F3**. Incluye pipeline de audio → STT → traducción → sala con QR, login de profesores (email + contraseña), cursos, sesiones persistidas y métricas agregadas.
 
@@ -51,14 +51,19 @@ Móviles en la misma red: abre el panel con la IP del portátil o define `VITE_P
 | `npm run dev` | API y web en modo desarrollo |
 | `npm test` | Tests unitarios y de API (sin dependencias externas) |
 | `npm run test:db -w @ct/api` | Integración contra Supabase **local** (se niega a correr contra otra URL) |
-| `npm run test:e2e` | E2E con Playwright (requiere `npx supabase start`) |
+| `npm run test:e2e` | E2E con Playwright, en dev y en build de producción (requiere `npx supabase start`) |
 | `npm run typecheck` | TypeScript en todos los paquetes y E2E |
-| `npm run build` | Build de producción de la web |
+| `npm run build` | Build de producción de API (`apps/api/dist`) y web (`apps/web/dist`) |
+| `npm run docker:build` | Imagen Docker de la API (`classtranslate-api`) |
 | `npm run user:create -w @ct/api -- …` | Crear usuario (profesor o `--admin`) |
 
 ## Tests E2E
 
-`npm run test:e2e` levanta su propia API (STT y traducción mock) en `:3101` y su propia web en `:5199`, así que puede convivir con `npm run dev`. Chrome usa un micrófono simulado. Cada ejecución crea un admin desechable en Supabase local y borra al terminar todo lo que ha creado.
+`npm run test:e2e` levanta su propia API en modo producción (STT y traducción mock, CORS y filtro de origen activos) en `:3101`. Las pruebas se ejecutan dos veces:
+- **dev**: Vite en `:5199`.
+- **build**: `vite build` + `preview` en `:5299`, con la API en otro origen y CSP activa, como en el despliegue.
+
+Puede convivir con `npm run dev`. Chrome usa un micrófono simulado. Cada ejecución crea un admin desechable en Supabase local y borra al terminar todo lo que ha creado.
 
 Qué cubre:
 - El admin crea un profesor y un curso desde la UI.
@@ -68,6 +73,7 @@ Qué cubre:
 - Al cortar el WebSocket de un alumno, este se reconecta y recupera el buffer sin duplicados.
 - Pausa y reanudación, cambio de idioma en directo y fin de la clase.
 - Al terminar, el estado y las métricas quedan guardados en la BD.
+- En el build, la CSP está presente y no bloquea nada.
 - Accesos: redirecciones al login, credenciales incorrectas, `/admin` prohibido a profesores, cerrar sesión y sala inexistente.
 
 Informe HTML de la última ejecución en `e2e/report/` (`npx playwright show-report e2e/report`).
@@ -82,4 +88,5 @@ Informe HTML de la última ejecución en `e2e/report/` (`npx playwright show-rep
 - **Autenticación**: Supabase Auth en el navegador. La API valida el access token con `auth.getUser` y lee el rol de `profiles`. Solo el profesor de la sesión o un admin la controlan, también por WebSocket (`hello`).
 - **Datos**: todo acceso a tablas pasa por la API con la secret key. RLS activado sin políticas para `anon` y `authenticated`, así que el navegador no puede leer ni escribir directamente.
 - **Privacidad (PRD §10)**: no se guarda audio ni texto. En la BD solo quedan cursos, sesiones (estado y fechas) y métricas agregadas (duración, segmentos, caracteres, latencia mediana/p95, errores, pico de alumnos, idiomas usados).
+- **Producción**: no arranca sin `ALLOWED_ORIGINS` ni con proveedores mock. Rate limit por IP (`TRUST_PROXY` detrás del proxy del hosting), cabeceras de seguridad (helmet), filtro de origen en los WebSockets y CSP en la web.
 - Al arrancar, la API marca como finalizadas las sesiones abiertas de una ejecución anterior, porque el estado en directo vive en memoria.

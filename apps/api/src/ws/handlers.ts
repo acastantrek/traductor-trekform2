@@ -1,5 +1,5 @@
 import { isLanguage, WS_CLOSE } from '@ct/shared';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import WebSocket from 'ws';
 import { z } from 'zod';
 import type { AuthVerifier } from '../db/types.js';
@@ -46,8 +46,19 @@ function sender(socket: WebSocket) {
   };
 }
 
-export function registerWebSockets(app: FastifyInstance, registry: SessionRegistry, auth: AuthVerifier) {
-  app.get('/ws/teacher/:id', { websocket: true }, (socket, req) => {
+export function registerWebSockets(
+  app: FastifyInstance,
+  registry: SessionRegistry,
+  auth: AuthVerifier,
+  { allowedOrigins }: { allowedOrigins: string[] | null },
+) {
+  // Rechaza el upgrade antes de abrir el socket (evita cross-site WebSocket hijacking).
+  const checkOrigin = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (allowedOrigins && !allowedOrigins.includes(req.headers.origin ?? ''))
+      return reply.status(403).send({ error: 'forbidden', message: 'Origen no permitido' });
+  };
+
+  app.get('/ws/teacher/:id', { websocket: true, preValidation: checkOrigin }, (socket, req) => {
     const { id } = req.params as { id: string };
     const session = registry.get(id);
     if (!session) return socket.close(WS_CLOSE.notFound, 'session not found');
@@ -107,7 +118,7 @@ export function registerWebSockets(app: FastifyInstance, registry: SessionRegist
     });
   });
 
-  app.get('/ws/student/:id', { websocket: true }, (socket, req) => {
+  app.get('/ws/student/:id', { websocket: true, preValidation: checkOrigin }, (socket, req) => {
     const { id } = req.params as { id: string };
     const query = req.query as { lang?: string; since?: string };
     const session = registry.get(id);

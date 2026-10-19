@@ -1,8 +1,10 @@
 import type { Me } from '@ct/shared';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { api } from './api';
-import { supabase } from './supabase';
+import { api, setTokenProvider } from './api';
+import { accessToken, supabase } from './supabase';
+
+setTokenProvider(accessToken);
 
 interface AuthState {
   /** undefined mientras se comprueba la sesión guardada. */

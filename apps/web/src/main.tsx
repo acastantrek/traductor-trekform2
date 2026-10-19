@@ -1,49 +1,27 @@
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
-import { AuthProvider, RequireAuth } from './lib/auth';
-import { Admin } from './pages/Admin';
-import { Dashboard } from './pages/Dashboard';
-import { Login } from './pages/Login';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { Student } from './pages/Student';
-import { Teacher } from './pages/Teacher';
 import './styles.css';
+
+// Los alumnos (móvil, Wi-Fi del aula) solo descargan su vista: sin Supabase ni pantallas de profesor.
+const StaffApp = lazy(() => import('./StaffApp'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <RequireAuth admin>
-                <Admin />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/t/:id"
-            element={
-              <RequireAuth>
-                <Teacher />
-              </RequireAuth>
-            }
-          />
-          {/* Alumnos: sin cuenta (PRD §5.2). */}
-          <Route path="/s/:id" element={<Student />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
+      <Routes>
+        {/* Alumnos: sin cuenta (PRD §5.2). */}
+        <Route path="/s/:id" element={<Student />} />
+        <Route
+          path="*"
+          element={
+            <Suspense fallback={<main className="page narrow"><p className="muted">Cargando…</p></main>}>
+              <StaffApp />
+            </Suspense>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   </StrictMode>,
 );

@@ -37,3 +37,12 @@ test('alumno: una sala inexistente muestra un mensaje en vez de fallar', async (
   await page.goto('/s/no-existe');
   await expect(page.getByText('Esta clase no existe o ya ha caducado.')).toBeVisible();
 });
+
+test('alumno: no descarga la zona de profesores ni contacta con Supabase', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'build', 'Los chunks solo existen en el build');
+  const requests: string[] = [];
+  page.on('request', (r) => requests.push(r.url()));
+  await page.goto('/s/no-existe');
+  await expect(page.getByText('Esta clase no existe o ya ha caducado.')).toBeVisible();
+  expect(requests.filter((u) => /StaffApp|supabase|:55621/i.test(u))).toEqual([]);
+});

@@ -1,5 +1,5 @@
 import { expect, test, type Page, type WebSocketRoute } from '@playwright/test';
-import { adminDb, adminEmail, courseName, createTeacher, login, unique, userEmail } from './helpers';
+import { adminDb, adminEmail, courseName, createTeacher, login, trackCspViolations, unique, userEmail } from './helpers';
 
 // Frases del STT mock (apps/api/src/providers/mock.ts), en orden.
 const PHRASE_1 = 'Bienvenidos a la sesión de hoy.';
@@ -9,13 +9,19 @@ const subtitles = (page: Page) => page.locator('.subtitles');
 
 test('clase completa: admin prepara curso, profesor emite y alumnos reciben subtítulos traducidos', async ({
   browser,
-}) => {
+}, testInfo) => {
+  const cspViolations: string[] = [];
+  const newContext = async () => {
+    const ctx = await browser.newContext();
+    trackCspViolations(ctx, cspViolations);
+    return ctx;
+  };
   const teacherName = unique('Profe E2E ');
   const teacherEmail = userEmail(unique('profe'));
   const course = courseName(unique('Seguridad en taller '));
 
   // ---------- Admin: crea profesor y curso desde la UI (FR-01) ----------
-  const adminCtx = await browser.newContext();
+  const adminCtx = await newContext();
   const admin = await adminCtx.newPage();
   await login(admin, adminEmail());
   await admin.getByRole('link', { name: 'Administración' }).click();
@@ -37,7 +43,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await adminCtx.close();
 
   // ---------- Profesor: prepara la clase (OBJ-04) ----------
-  const teacherCtx = await browser.newContext();
+  const teacherCtx = await newContext();
   const teacher = await teacherCtx.newPage();
   await login(teacher, teacherEmail);
   await teacher.locator('article', { hasText: course }).getByRole('button', { name: 'Preparar clase' }).click();
@@ -48,7 +54,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   expect(studentUrl).toContain(`/s/${sessionId}`);
 
   // ---------- Alumnos: entran sin cuenta y eligen idioma (AC-03, AC-04) ----------
-  const enCtx = await browser.newContext();
+  const enCtx = await newContext();
   const en = await enCtx.newPage();
   // Proxy del WebSocket del alumno para poder cortar la conexión más adelante (AC-08).
   let enSocket: { page: WebSocketRoute; server: WebSocketRoute } | undefined;
@@ -59,7 +65,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await en.getByRole('button', { name: 'English' }).click();
   await expect(en.getByText('La clase aún no ha empezado.')).toBeVisible();
 
-  const frCtx = await browser.newContext();
+  const frCtx = await newContext();
   const fr = await frCtx.newPage();
   await fr.goto(studentUrl!);
   await fr.getByRole('button', { name: 'Français' }).click();
@@ -78,7 +84,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
 
   // ---------- Otro profesor no puede abrir este panel ----------
   const other = await createTeacher('intruso');
-  const otherCtx = await browser.newContext();
+  const otherCtx = await newContext();
   const otherPage = await otherCtx.newPage();
   await login(otherPage, other.email);
   await otherPage.goto(`/t/${sessionId}`);
@@ -132,6 +138,11 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
       status: 'ended',
       session_metrics: { peak_students: 2, languages_used: expect.arrayContaining(['en', 'fr']) },
     });
+
+  // Build de producción: la CSP está activa y no ha bloqueado nada (audio worklet, API, WS, Supabase).
+  if (testInfo.project.name === 'build')
+    expect(await teacher.locator('meta[http-equiv="Content-Security-Policy"]').count()).toBe(1);
+  expect(cspViolations).toEqual([]);
 
   await Promise.all([teacherCtx.close(), enCtx.close(), frCtx.close()]);
 });

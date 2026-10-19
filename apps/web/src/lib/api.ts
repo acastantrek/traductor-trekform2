@@ -9,7 +9,14 @@ import type {
   TeacherSession,
   TeacherSummary,
 } from '@ct/shared';
-import { accessToken } from './supabase';
+import { apiUrl } from './config';
+
+// La vista de alumno no carga Supabase: el token lo inyecta el módulo de auth (zona de profesor).
+let tokenProvider: () => Promise<string | null> = async () => null;
+
+export function setTokenProvider(provider: () => Promise<string | null>) {
+  tokenProvider = provider;
+}
 
 export class HttpError extends Error {
   constructor(
@@ -21,9 +28,9 @@ export class HttpError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-  const token = await accessToken();
+  const token = await tokenProvider();
   const { json, ...rest } = init;
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     ...rest,
     headers: {
       ...(json === undefined ? {} : { 'Content-Type': 'application/json' }),

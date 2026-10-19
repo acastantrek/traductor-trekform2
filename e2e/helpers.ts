@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { expect, type Page } from '@playwright/test';
+import { expect, type BrowserContext, type Page } from '@playwright/test';
 
 export const tag = () => process.env.E2E_TAG!;
 export const password = () => process.env.E2E_PASSWORD!;
@@ -36,4 +36,11 @@ export async function login(page: Page, email: string, pw = password()) {
   await page.getByLabel('Contraseña').fill(pw);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('button', { name: 'Salir' })).toBeVisible();
+}
+
+/** Registra violaciones de CSP en todas las páginas del contexto (la CSP solo existe en el build). */
+export function trackCspViolations(context: BrowserContext, violations: string[]) {
+  context.on('console', (msg) => {
+    if (msg.type() === 'error' && /Content Security Policy/i.test(msg.text())) violations.push(msg.text());
+  });
 }

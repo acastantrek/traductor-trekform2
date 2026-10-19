@@ -64,8 +64,11 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     return user;
   }
 
-  app.setErrorHandler((err, _req, reply) => {
+  app.setErrorHandler((err: Error & { statusCode?: number; error?: string }, _req, reply) => {
     if (err instanceof ConflictError) return fail(reply, 409, 'conflict', err.message);
+    // Errores de cliente de Fastify y plugins (JSON inválido, body grande, rate limit…): se respetan.
+    if (err.statusCode && err.statusCode >= 400 && err.statusCode < 500)
+      return fail(reply, err.statusCode, err.error ?? 'bad_request', err.message);
     app.log.error(err);
     return fail(reply, 500, 'internal', 'Error interno');
   });

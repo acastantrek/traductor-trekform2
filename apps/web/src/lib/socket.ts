@@ -16,10 +16,7 @@ interface Options {
   fatalCodes?: number[];
 }
 
-export function wsUrl(path: string) {
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${location.host}${path}`;
-}
+export { wsUrl } from './config';
 
 /** WebSocket con reconexión exponencial (NFR-04). */
 export function connectSocket(options: Options): ReconnectingSocket {
