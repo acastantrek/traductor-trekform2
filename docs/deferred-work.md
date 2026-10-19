@@ -26,3 +26,16 @@ Tareas aplazadas conscientemente. Al retomar una, se mueve a hecho o se borra.
 - **Mientras tanto:** la traducción usa el mock (`[en] texto original`).
 - **Pasos:** Console → proyecto → Facturación → habilitar *Cloud Translation API* → Credenciales → *Clave de API* restringida a Cloud Translation API → `GOOGLE_TRANSLATE_API_KEY=` en `.env`. Crear un presupuesto con alerta.
 - **Alternativas, si no se quiere facturación de Google:** DeepL API Free, Azure Translator F0 o LibreTranslate autoalojado (requieren un adaptador nuevo en `apps/api/src/providers/`).
+
+### Historial de sesiones y métricas en `/admin`
+- **Desde:** 2026-10-19
+- **Motivo del aplazamiento:** decisión del usuario; se prioriza otro trabajo.
+- **Estado:** las métricas ya se guardan al finalizar cada sesión (`sessions` + `session_metrics` en Supabase), pero solo se ven desde Supabase Studio.
+- **Por qué importa:** es la base para decidir go/no-go en el piloto (PRD §11, AC-11, AC-12, NFR-10).
+- **Alcance propuesto:**
+  1. Tabla de sesiones recientes: curso, profesor, fecha, duración, pico de alumnos, idiomas, latencia mediana/p95 y errores. Filtros por curso y fechas.
+  2. Resumen: horas de clase, % de sesiones sin errores (objetivo piloto ≥ 90 %) y latencia mediana global frente al objetivo de ≤ 4 s.
+  3. Coste estimado por sesión y por hora con tarifas STT y de traducción configurables por env (verificar precios con el contrato).
+  4. Exportación CSV.
+  5. Tests de API y un caso E2E.
+- **No requiere** cambios en el pipeline realtime: todo sale de los datos ya persistidos.
