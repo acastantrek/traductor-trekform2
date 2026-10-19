@@ -51,9 +51,26 @@ Móviles en la misma red: abre el panel con la IP del portátil o define `VITE_P
 | `npm run dev` | API y web en modo desarrollo |
 | `npm test` | Tests unitarios y de API (sin dependencias externas) |
 | `npm run test:db -w @ct/api` | Integración contra Supabase **local** (se niega a correr contra otra URL) |
-| `npm run typecheck` | TypeScript en todos los paquetes |
+| `npm run test:e2e` | E2E con Playwright (requiere `npx supabase start`) |
+| `npm run typecheck` | TypeScript en todos los paquetes y E2E |
 | `npm run build` | Build de producción de la web |
 | `npm run user:create -w @ct/api -- …` | Crear usuario (profesor o `--admin`) |
+
+## Tests E2E
+
+`npm run test:e2e` levanta su propia API (STT y traducción mock) en `:3101` y su propia web en `:5199`, así que puede convivir con `npm run dev`. Chrome usa un micrófono simulado. Cada ejecución crea un admin desechable en Supabase local y borra al terminar todo lo que ha creado.
+
+Qué cubre:
+- El admin crea un profesor y un curso desde la UI.
+- El profesor prepara e inicia la clase.
+- Dos alumnos sin cuenta (inglés y francés) reciben los subtítulos.
+- Otro profesor no puede abrir el panel.
+- Al cortar el WebSocket de un alumno, este se reconecta y recupera el buffer sin duplicados.
+- Pausa y reanudación, cambio de idioma en directo y fin de la clase.
+- Al terminar, el estado y las métricas quedan guardados en la BD.
+- Accesos: redirecciones al login, credenciales incorrectas, `/admin` prohibido a profesores, cerrar sesión y sala inexistente.
+
+Informe HTML de la última ejecución en `e2e/report/` (`npx playwright show-report e2e/report`).
 
 ## Diseño
 

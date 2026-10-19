@@ -20,6 +20,8 @@ const schema = z.object({
   MAX_STUDENTS_PER_SESSION: z.coerce.number().int().positive().default(150),
   BUFFER_SIZE: z.coerce.number().int().positive().default(50),
   TRANSLATION_TIMEOUT_MS: z.coerce.number().int().positive().default(6000),
+  // false solo para procesos que comparten BD con otra API en marcha (p. ej. E2E).
+  CLOSE_ORPHANS_ON_START: z.enum(['true', 'false']).default('true'),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -40,6 +42,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     stt: { provider: stt, apiKey: e.DEEPGRAM_API_KEY, model: e.DEEPGRAM_MODEL },
     translation: { provider: translation, apiKey: e.GOOGLE_TRANSLATE_API_KEY },
     supabase: { url: e.SUPABASE_URL, secretKey: e.SUPABASE_SECRET_KEY },
+    closeOrphansOnStart: e.CLOSE_ORPHANS_ON_START === 'true',
     session: {
       graceMs: e.LANGUAGE_GRACE_MS,
       maxStudents: e.MAX_STUDENTS_PER_SESSION,

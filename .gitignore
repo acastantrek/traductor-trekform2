@@ -7,3 +7,5 @@ dist/
 coverage/
 supabase/.temp/
 supabase/.branches/
+e2e/report/
+e2e/results/

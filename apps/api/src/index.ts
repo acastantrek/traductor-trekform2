@@ -13,8 +13,10 @@ if (stt.name === 'mock' || translator.name === 'mock')
   app.log.warn(`Proveedores mock activos (stt=${stt.name}, translation=${translator.name}). Configura .env para usar los reales.`);
 
 // Las sesiones en directo viven en memoria: tras un reinicio, las abiertas en BD quedan huérfanas.
-const orphans = await repo.closeOrphanSessions();
-if (orphans) app.log.warn(`${orphans} sesiones abiertas de una ejecución anterior marcadas como finalizadas`);
+if (config.closeOrphansOnStart) {
+  const orphans = await repo.closeOrphanSessions();
+  if (orphans) app.log.warn(`${orphans} sesiones abiertas de una ejecución anterior marcadas como finalizadas`);
+}
 
 const shutdown = async () => {
   await app.close();
