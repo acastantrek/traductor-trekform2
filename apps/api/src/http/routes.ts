@@ -1,6 +1,7 @@
 import {
   LANGUAGE_CODES,
   MAX_TARGET_LANGUAGES,
+  SOURCE_LANGUAGES,
   type CreateSessionResponse,
   type SessionAction,
 } from '@ct/shared';
@@ -13,7 +14,7 @@ const language = z.enum(LANGUAGE_CODES as [string, ...string[]]);
 const createSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
-    sourceLanguage: language,
+    sourceLanguage: z.enum(SOURCE_LANGUAGES),
     targetLanguages: z.array(language).min(1).max(MAX_TARGET_LANGUAGES),
   })
   .transform((v) => ({

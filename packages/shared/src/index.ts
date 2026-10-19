@@ -1,7 +1,7 @@
 // Contrato compartido entre apps/api y apps/web (PRD §9.2 y §9.3).
 
 export const LANGUAGES = {
-  es: 'Español',
+  es: 'Castellano',
   ca: 'Català',
   en: 'English',
   fr: 'Français',
@@ -18,6 +18,11 @@ export const LANGUAGES = {
 export type Language = keyof typeof LANGUAGES;
 
 export const LANGUAGE_CODES = Object.keys(LANGUAGES) as Language[];
+
+/** Idiomas en los que puede hablar el profesor (entrada del STT). */
+export const SOURCE_LANGUAGES = ['es', 'ca'] as const satisfies readonly Language[];
+
+export type SourceLanguage = (typeof SOURCE_LANGUAGES)[number];
 
 export function isLanguage(value: unknown): value is Language {
   return typeof value === 'string' && value in LANGUAGES;

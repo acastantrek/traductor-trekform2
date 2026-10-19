@@ -1,4 +1,11 @@
-import { LANGUAGE_CODES, LANGUAGES, MAX_TARGET_LANGUAGES, type Language } from '@ct/shared';
+import {
+  LANGUAGE_CODES,
+  LANGUAGES,
+  MAX_TARGET_LANGUAGES,
+  SOURCE_LANGUAGES,
+  type Language,
+  type SourceLanguage,
+} from '@ct/shared';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { api, teacherTokens } from '../lib/api';
@@ -6,7 +13,7 @@ import { api, teacherTokens } from '../lib/api';
 export function Home() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
-  const [source, setSource] = useState<Language>('es');
+  const [source, setSource] = useState<SourceLanguage>('es');
   const [targets, setTargets] = useState<Language[]>(['en', 'fr', 'ar', 'ro']);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -56,8 +63,8 @@ export function Home() {
         </label>
         <label className="field">
           <span>Idioma del profesor</span>
-          <select value={source} onChange={(e) => setSource(e.target.value as Language)}>
-            {LANGUAGE_CODES.map((l) => (
+          <select value={source} onChange={(e) => setSource(e.target.value as SourceLanguage)}>
+            {SOURCE_LANGUAGES.map((l) => (
               <option key={l} value={l}>
                 {LANGUAGES[l]}
               </option>
