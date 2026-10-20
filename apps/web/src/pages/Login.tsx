@@ -59,7 +59,6 @@ export function Login() {
         <button className="btn primary big" disabled={busy}>
           {busy ? 'Entrando…' : 'Entrar'}
         </button>
-        <p className="muted small">¿Eres alumno? No necesitas cuenta: escanea el QR que muestra tu profesor.</p>
       </form>
     </main>
   );
