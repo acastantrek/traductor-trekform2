@@ -1,0 +1,10 @@
+# Despliegue de la web con la CLI de Vercel: las variables vienen del proyecto, no de los .env locales.
+.env
+.env.*
+!.env.example
+node_modules
+dist
+supabase
+e2e
+docs
+.github

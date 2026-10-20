@@ -9,3 +9,6 @@ supabase/.temp/
 supabase/.branches/
 e2e/report/
 e2e/results/
+
+.vercel
+.env*
