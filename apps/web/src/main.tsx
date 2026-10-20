@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import { Student } from './pages/Student';
+import '@fontsource-variable/montserrat';
 import './styles.css';
 
 // Los alumnos (móvil, Wi-Fi del aula) solo descargan su vista: sin Supabase ni pantallas de profesor.

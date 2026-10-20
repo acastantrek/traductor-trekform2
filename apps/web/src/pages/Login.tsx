@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Logo } from '../components/Logo';
 import { useAuth } from '../lib/auth';
 
 export function Login() {
@@ -29,9 +30,10 @@ export function Login() {
 
   return (
     <main className="page narrow">
-      <header className="brand">
+      <header className="brand login-hero">
+        <Logo height={40} />
         <h1>ClassTranslate</h1>
-        <p className="muted">Subtítulos traducidos en directo para tu clase.</p>
+        <p>Subtítulos traducidos en directo para tu clase.</p>
       </header>
       <form className="card stack" onSubmit={submit}>
         <h2>Acceso profesores</h2>

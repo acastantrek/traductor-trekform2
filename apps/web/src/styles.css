@@ -1,36 +1,50 @@
+/* Branding Trekform (trekform.com): amarillo #ffb606, gris oscuro #2e2e2e, Montserrat. */
 :root {
-  --bg: #f6f7f9;
+  --bg: #eff1f5;
   --surface: #ffffff;
-  --text: #15181d;
-  --muted: #5d6573;
-  --border: #d9dde4;
-  --accent: #1f5fd1;
-  --accent-text: #ffffff;
+  --text: #2e2e2e;
+  --muted: #65676b;
+  --border: #dfe3ea;
+  /* Relleno de marca (botones, estados); no usar como color de texto sobre fondo claro. */
+  --accent: #ffb606;
+  --accent-text: #2e2e2e;
+  /* Variante legible del amarillo para texto y enlaces (AA sobre --surface y --bg). */
+  --accent-ink: #8f5e00;
+  --focus: #2e2e2e;
+  /* Barra superior y cabecera del login, como el header/footer de trekform.com. */
+  --brand-dark: #2e2e2e;
+  --brand-dark-text: #ffffff;
+  --brand-dark-muted: #b9bbbf;
   --ok: #1b7f3b;
   --warn: #a15c00;
   --error: #c02929;
   --live: #c02929;
-  --partial: #6b7280;
-  --radius: 12px;
+  --partial: #65676b;
+  --radius: 6px;
+  --radius-control: 4px;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Montserrat Variable', 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101317;
-    --surface: #191d23;
-    --text: #e9ecf1;
-    --muted: #9aa3b2;
-    --border: #2c323c;
-    --accent: #6e9ff5;
-    --accent-text: #0b1220;
+    --bg: #1c1c1c;
+    --surface: #262626;
+    --text: #f1f1f1;
+    --muted: #a3a5a9;
+    --border: #3a3a3a;
+    --accent: #ffb606;
+    --accent-text: #2e2e2e;
+    --accent-ink: #ffb606;
+    --focus: #ffb606;
+    --brand-dark: #141414;
     --ok: #4cc27a;
     --warn: #e2a84a;
     --error: #f07070;
     --live: #f07070;
-    --partial: #9aa3b2;
+    --partial: #a3a5a9;
     color-scheme: dark;
   }
 }
@@ -48,20 +62,28 @@ body {
 
 h1 {
   font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 h3 {
   font-size: 1.1rem;
+  font-weight: 700;
   margin: 0;
 }
 
 h2 {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   color: var(--muted);
   margin: 0.5rem 0 0;
+}
+
+a {
+  color: var(--accent-ink);
 }
 
 .muted {
@@ -92,6 +114,32 @@ code {
 
 .brand p {
   margin: 4px 0 0;
+}
+
+.login-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 24px 20px;
+  border-radius: var(--radius);
+  background: var(--brand-dark);
+  color: var(--brand-dark-text);
+  border-bottom: 4px solid var(--accent);
+}
+
+.login-hero .logo {
+  margin-bottom: 14px;
+}
+
+.login-hero p {
+  color: var(--brand-dark-muted);
+}
+
+.logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 .card {
@@ -130,14 +178,19 @@ select {
   font: inherit;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   min-height: 44px;
 }
 
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
 :focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -168,20 +221,32 @@ select {
   margin: 0;
 }
 
+/* Botones como .thm-btn de trekform.com: mayúsculas, peso 800, tracking amplio. */
 .btn {
   font: inherit;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 16px;
+  padding: 10px 18px;
   min-height: 44px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
   text-decoration: none;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--text);
 }
 
 .btn:disabled {
@@ -195,6 +260,12 @@ select {
   color: var(--accent-text);
 }
 
+.btn.primary:hover:not(:disabled) {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+  color: var(--brand-dark-text);
+}
+
 .btn.danger {
   background: var(--error);
   border-color: var(--error);
@@ -202,15 +273,15 @@ select {
 }
 
 .btn.big {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   min-height: 56px;
   padding: 12px 20px;
 }
 
 .btn.small {
   min-height: 40px;
-  padding: 6px 10px;
-  font-size: 0.9rem;
+  padding: 6px 12px;
+  font-size: 0.72rem;
 }
 
 .btn[aria-pressed='true'] {
@@ -296,19 +367,30 @@ select {
 /* ---------- Barra de la app ---------- */
 
 .appbar {
+  --focus: var(--accent);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  gap: 8px 20px;
+  padding: 12px 16px;
+  background: var(--brand-dark);
+  color: var(--brand-dark-text);
+  border-bottom: 3px solid var(--accent);
 }
 
 .appbar-brand {
-  font-weight: 700;
-  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--brand-dark-text);
   text-decoration: none;
+}
+
+.appbar-product {
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--brand-dark-text) 30%, transparent);
 }
 
 .appbar-nav {
@@ -318,21 +400,46 @@ select {
 }
 
 .appbar-nav a {
-  color: var(--muted);
+  color: var(--brand-dark-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   text-decoration: none;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-bottom: 2px solid transparent;
+}
+
+.appbar-nav a:hover {
+  color: var(--brand-dark-text);
 }
 
 .appbar-nav a.active {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--brand-dark-text);
+  border-bottom-color: var(--accent);
 }
 
 .appbar-user {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.appbar .btn {
+  background: transparent;
+  color: var(--brand-dark-text);
+  border-color: color-mix(in srgb, var(--brand-dark-text) 40%, transparent);
+}
+
+.appbar .btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .appbar-product {
+    display: none;
+  }
 }
 
 /* ---------- Profesor ---------- */
@@ -470,7 +577,7 @@ select {
 
 .url {
   word-break: break-all;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .big-number {
