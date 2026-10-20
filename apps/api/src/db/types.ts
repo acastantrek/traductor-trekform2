@@ -40,6 +40,8 @@ export interface SessionMetrics {
 export interface Repository {
   listTeachers(): Promise<TeacherSummary[]>;
   createTeacher(input: CreateTeacherRequest): Promise<TeacherSummary>;
+  /** Cambia la contraseña de cualquier usuario (profesor o admin). false si no existe. */
+  setPassword(userId: string, password: string): Promise<boolean>;
 
   /** Admin: todos. Profesor: solo los cursos de los que es miembro. */
   listCourses(user: AuthUser): Promise<Course[]>;

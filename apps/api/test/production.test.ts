@@ -75,6 +75,21 @@ describe('servidor en producción', () => {
     expect(await wsStatus(`ws://${base}/ws/student/x?lang=en`, 'https://app.example.com')).toBe('close 4404');
   });
 
+  it('CORS: la web (otro origen) puede usar PATCH y PUT; orígenes ajenos no', async () => {
+    const base = await start(prod);
+    const preflight = (origin: string, method: string) =>
+      fetch(`http://${base}/api/courses/x`, {
+        method: 'OPTIONS',
+        headers: { Origin: origin, 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': 'authorization' },
+      });
+    for (const method of ['PATCH', 'PUT']) {
+      const res = await preflight('https://app.example.com', method);
+      expect(res.headers.get('access-control-allow-origin')).toBe('https://app.example.com');
+      expect(res.headers.get('access-control-allow-methods')).toContain(method);
+    }
+    expect((await preflight('https://evil.example', 'PATCH')).headers.get('access-control-allow-origin')).toBeNull();
+  });
+
   it('cabeceras de seguridad y rate limit', async () => {
     const base = await start({ ...prod, RATE_LIMIT_PER_MINUTE: '3' });
     const first = await fetch(`http://${base}/api/health`);

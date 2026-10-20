@@ -53,6 +53,8 @@ export const api = {
   teachers: () => request<TeacherSummary[]>('/api/teachers'),
   createTeacher: (input: CreateTeacherRequest) =>
     request<TeacherSummary>('/api/teachers', { method: 'POST', json: input }),
+  setPassword: (id: string, password: string) =>
+    request<void>(`/api/teachers/${encodeURIComponent(id)}/password`, { method: 'PUT', json: { password } }),
 
   courses: () => request<Course[]>('/api/courses'),
   createCourse: (input: CourseInput) => request<Course>('/api/courses', { method: 'POST', json: input }),

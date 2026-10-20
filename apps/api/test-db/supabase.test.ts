@@ -56,6 +56,16 @@ describe('Supabase (local)', () => {
     expect(await auth.verify('no-es-un-jwt')).toBeNull();
   });
 
+  it('cambia la contraseña: la nueva entra, la antigua no; usuario inexistente → false', async () => {
+    const user = await newTeacher('marta');
+    const client = createClient(url, publishable, { auth: { persistSession: false } });
+    const next = `pw-${randomBytes(8).toString('hex')}`;
+    expect(await repo.setPassword(user.id, next)).toBe(true);
+    expect((await client.auth.signInWithPassword({ email: user.email, password: next })).error).toBeNull();
+    expect((await client.auth.signInWithPassword({ email: user.email, password })).error).not.toBeNull();
+    expect(await repo.setPassword('00000000-0000-4000-8000-000000000000', next)).toBe(false);
+  });
+
   it('RLS: un usuario autenticado no puede leer ni escribir tablas directamente', async () => {
     const client = createClient(url, publishable, { auth: { persistSession: false } });
     await client.auth.signInWithPassword({ email: `ana-${tag}@test.local`, password });

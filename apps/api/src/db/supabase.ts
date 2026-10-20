@@ -108,6 +108,13 @@ export class SupabaseRepository implements Repository {
     return { id: data.user.id, email: input.email, fullName: input.fullName, role: 'teacher' };
   }
 
+  async setPassword(userId: string, password: string) {
+    const { error } = await this.db.auth.admin.updateUserById(userId, { password });
+    if (!error) return true;
+    if (error.status === 404 || /not found/i.test(error.message)) return false;
+    throw new Error(`Supabase Auth: ${error.message}`);
+  }
+
   async listCourses(user: AuthUser) {
     let query = this.db.from('courses').select(COURSE_COLUMNS).order('created_at', { ascending: false });
     if (user.role !== 'admin') {

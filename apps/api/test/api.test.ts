@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Course, StudentServerEvent, TeacherSession } from '@ct/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
@@ -110,6 +111,20 @@ describe('Auth y cursos', () => {
     expect((await call('POST', '/api/teachers', admin, body)).status).toBe(201);
     expect((await call('POST', '/api/teachers', admin, body)).status).toBe(409);
     expect((await call('POST', '/api/teachers', admin, { ...body, password: 'corta' })).status).toBe(400);
+  });
+
+  it('solo el admin cambia contraseñas, de profesores y de admins', async () => {
+    const path = (id: string) => `/api/teachers/${id}/password`;
+    const body = { password: 'otra-contraseña' };
+    expect((await call('PUT', path(teacher.id), undefined, body)).status).toBe(401);
+    expect((await call('PUT', path(teacher.id), teacher, body)).status).toBe(403);
+    expect((await call('PUT', path(teacher.id), admin, body)).status).toBe(204);
+    expect((await call('PUT', path(admin.id), admin, body)).status).toBe(204);
+    expect(repo.passwords.get(teacher.id)).toBe('otra-contraseña');
+    expect(repo.passwords.get(admin.id)).toBe('otra-contraseña');
+    expect((await call('PUT', path(teacher.id), admin, { password: 'corta' })).status).toBe(400);
+    expect((await call('PUT', path(randomUUID()), admin, body)).status).toBe(404);
+    expect((await call('PUT', path('no-es-uuid'), admin, body)).status).toBe(404);
   });
 });
 

@@ -62,7 +62,8 @@ export async function buildApp({ config, stt, translator, repo, auth, logger = t
 
   // API solo JSON/WS: cabeceras estrictas; la CSP de la web la sirve su propio hosting.
   await app.register(helmet, { contentSecurityPolicy: { directives: { defaultSrc: ["'none'"] } } });
-  await app.register(cors, { origin: config.allowedOrigins });
+  // Por defecto @fastify/cors solo permite GET/HEAD/POST: sin esto, editar cursos (PATCH) falla desde otro origen.
+  await app.register(cors, { origin: config.allowedOrigins, methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH'] });
   await app.register(rateLimit, {
     max: config.rateLimitPerMinute,
     timeWindow: '1 minute',

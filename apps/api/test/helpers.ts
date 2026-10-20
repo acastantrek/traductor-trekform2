@@ -86,6 +86,14 @@ export class MemoryRepository implements Repository {
     return user;
   }
 
+  passwords = new Map<string, string>();
+
+  async setPassword(userId: string, password: string) {
+    if (!this.users.has(userId)) return false;
+    this.passwords.set(userId, password);
+    return true;
+  }
+
   async listCourses(user: AuthUser) {
     return [...this.courses.values()].filter((c) => user.role === 'admin' || c.teacherIds.includes(user.id));
   }

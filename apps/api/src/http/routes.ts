@@ -29,10 +29,12 @@ const courseSchema = z
     message: 'Debe haber al menos un idioma de destino distinto del de origen',
   });
 
+const password = z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').max(128);
+
 const teacherSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   fullName: z.string().trim().min(1).max(120),
-  password: z.string().min(8).max(128),
+  password,
 });
 
 const idParams = z.object({ id: z.string().min(1).max(64) });
@@ -92,6 +94,18 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     const parsed = teacherSchema.safeParse(req.body);
     if (!parsed.success) return fail(reply, 400, 'invalid_body', parsed.error.issues[0]?.message ?? 'Datos no válidos');
     return reply.status(201).send(await repo.createTeacher(parsed.data));
+  });
+
+  // Cualquier usuario: profesor o admin (incluido uno mismo).
+  app.put('/api/teachers/:id/password', async (req, reply) => {
+    if (!(await requireUser(req, reply, 'admin'))) return reply;
+    const params = z.object({ id: uuid }).safeParse(req.params);
+    if (!params.success) return fail(reply, 404, 'not_found', 'El usuario no existe');
+    const parsed = z.object({ password }).safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, 'invalid_body', parsed.error.issues[0]?.message ?? 'Datos no válidos');
+    if (!(await repo.setPassword(params.data.id, parsed.data.password)))
+      return fail(reply, 404, 'not_found', 'El usuario no existe');
+    return reply.status(204).send();
   });
 
   // ---------- Cursos (FR-01) ----------

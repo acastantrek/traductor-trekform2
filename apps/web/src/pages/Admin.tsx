@@ -101,14 +101,9 @@ export function Admin() {
         <section className="stack section">
           <h2>Profesores</h2>
           <div className="card">
-            <ul className="plain-list">
+            <ul className="plain-list user-list">
               {teachers.map((t) => (
-                <li key={t.id} className="row spread">
-                  <span>
-                    {t.fullName || '—'} <span className="muted small">{t.email}</span>
-                  </span>
-                  <span className="muted small">{t.role === 'admin' ? 'Admin' : 'Profesor'}</span>
-                </li>
+                <UserRow key={t.id} user={t} />
               ))}
             </ul>
           </div>
@@ -116,6 +111,84 @@ export function Admin() {
         </section>
       </main>
     </>
+  );
+}
+
+/** Fila de usuario (profesor o admin) con cambio de contraseña en línea. */
+function UserRow({ user }: { user: TeacherSummary }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [done, setDone] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function toggle() {
+    setOpen(!open);
+    setPassword('');
+    setError('');
+    setDone('');
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      await api.setPassword(user.id, password);
+      setOpen(false);
+      setPassword('');
+      setDone('Contraseña cambiada. Compártela por un canal seguro.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar la contraseña');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="stack">
+      <div className="row spread">
+        <span>
+          {user.fullName || '—'} <span className="muted small">{user.email}</span>
+        </span>
+        <span className="row">
+          <span className="muted small">{user.role === 'admin' ? 'Admin' : 'Profesor'}</span>
+          <button className="btn small" aria-expanded={open} onClick={toggle}>
+            {open ? 'Cancelar' : 'Cambiar contraseña'}
+          </button>
+        </span>
+      </div>
+      {open && (
+        <form className="row password-form" onSubmit={submit}>
+          <label className="field">
+            <span>Nueva contraseña para {user.fullName || user.email}</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </label>
+          <button className="btn primary" disabled={busy}>
+            {busy ? 'Guardando…' : 'Guardar'}
+          </button>
+        </form>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {done && (
+        <p className="success small" role="status">
+          {done}
+        </p>
+      )}
+    </li>
   );
 }
 
