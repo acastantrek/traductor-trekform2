@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { AuthProvider, RequireAuth } from './lib/auth';
 import { Admin } from './pages/Admin';
+import { AdminCourses } from './pages/AdminCourses';
+import { AdminTeachers } from './pages/AdminTeachers';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
 import { Teacher } from './pages/Teacher';
@@ -26,7 +28,11 @@ export default function StaffApp() {
               <Admin />
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<Navigate to="cursos" replace />} />
+          <Route path="cursos" element={<AdminCourses />} />
+          <Route path="profesores" element={<AdminTeachers />} />
+        </Route>
         <Route
           path="t/:id"
           element={

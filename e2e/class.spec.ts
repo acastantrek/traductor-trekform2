@@ -25,13 +25,21 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   const admin = await adminCtx.newPage();
   await login(admin, adminEmail());
   await admin.getByRole('link', { name: 'Administración' }).click();
+  await expect(admin).toHaveURL(/\/admin\/cursos$/);
 
-  await admin.getByLabel('Nombre', { exact: true }).fill(teacherName);
-  await admin.getByLabel('Email').fill(teacherEmail);
-  await admin.getByLabel('Contraseña inicial').fill(process.env.E2E_PASSWORD!);
-  await admin.getByRole('button', { name: 'Crear profesor' }).click();
+  // Profesores: página propia; el alta se hace en un modal.
+  await admin.getByRole('link', { name: 'Profesores', exact: true }).click();
+  await admin.getByRole('button', { name: 'Nuevo profesor' }).click();
+  const modal = admin.getByRole('dialog', { name: 'Nuevo profesor' });
+  await modal.getByLabel('Nombre', { exact: true }).fill(teacherName);
+  await modal.getByLabel('Email').fill(teacherEmail);
+  await modal.getByLabel('Contraseña inicial').fill(process.env.E2E_PASSWORD!);
+  await modal.getByRole('button', { name: 'Crear profesor' }).click();
+  await expect(modal).toBeHidden();
   await expect(admin.getByText(`Cuenta creada para ${teacherEmail}`)).toBeVisible();
+  await expect(admin.locator('.user-list')).toContainText(teacherEmail);
 
+  await admin.getByRole('link', { name: 'Cursos', exact: true }).click();
   await admin.getByRole('button', { name: 'Nuevo curso' }).click();
   await admin.getByLabel('Nombre del curso').fill(course);
   await expect(admin.getByLabel('Idioma del profesor')).toHaveValue('es');
