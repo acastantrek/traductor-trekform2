@@ -575,6 +575,64 @@ select:focus {
   line-height: 0;
 }
 
+.qr-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+  font: inherit;
+  line-height: 1.2;
+}
+
+.qr-button:hover {
+  border-color: var(--accent);
+}
+
+.qr-hint {
+  color: #65676b;
+  padding-bottom: 4px;
+}
+
+/* QR ampliado: centrado sobre todo (top layer de <dialog>), lo más grande que quepa en pantalla. */
+.qr-modal {
+  border: 0;
+  padding: 24px;
+  background: transparent;
+  max-width: 100vw;
+  max-height: 100dvh;
+  cursor: zoom-out;
+  text-align: center;
+}
+
+.qr-modal::backdrop {
+  background: rgb(0 0 0 / 0.85);
+}
+
+.qr-modal .qr {
+  display: inline-block;
+  padding: 16px;
+}
+
+.qr-modal svg {
+  width: min(80vw, calc(100dvh - 180px), 720px);
+  height: auto;
+}
+
+.qr-modal-url {
+  margin: 16px 0 0;
+  color: #fff;
+  font-size: clamp(1rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.qr-modal-close {
+  margin: 6px 0 0;
+  color: #b9bbbf;
+}
+
 .url {
   word-break: break-all;
   color: var(--accent-ink);

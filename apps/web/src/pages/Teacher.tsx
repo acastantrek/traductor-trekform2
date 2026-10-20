@@ -290,9 +290,7 @@ export function Teacher() {
 
         <div className="card stack join">
           <h2>Acceso alumnos</h2>
-          <div className="qr">
-            <QRCodeSVG value={url} size={200} marginSize={2} />
-          </div>
+          <QrZoom url={url} />
           <a className="url" href={url} target="_blank" rel="noreferrer">
             {url}
           </a>
@@ -323,6 +321,26 @@ export function Teacher() {
         </div>
       </section>
     </main>
+    </>
+  );
+}
+
+/** QR del panel; al pulsarlo se abre en grande en un modal para proyectarlo al aula. Cualquier clic o Esc lo cierra. */
+function QrZoom({ url }: { url: string }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  return (
+    <>
+      <button type="button" className="qr qr-button" aria-label="Ampliar código QR" onClick={() => dialog.current?.showModal()}>
+        <QRCodeSVG value={url} size={200} marginSize={2} />
+        <span className="qr-hint small">Pulsa para ampliar</span>
+      </button>
+      <dialog ref={dialog} className="qr-modal" aria-label="Código QR para alumnos" onClick={() => dialog.current?.close()}>
+        <div className="qr">
+          <QRCodeSVG value={url} size={640} marginSize={2} />
+        </div>
+        <p className="qr-modal-url">{url}</p>
+        <p className="qr-modal-close small">Pulsa en cualquier lugar para cerrar</p>
+      </dialog>
     </>
   );
 }
