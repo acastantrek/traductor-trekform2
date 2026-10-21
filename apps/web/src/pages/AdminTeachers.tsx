@@ -7,6 +7,8 @@ import { Loader, Spinner } from '../components/Spinner';
 import { useSuccessAlert } from '../components/SuccessAlert';
 import { api } from '../lib/api';
 
+const SHARE_PASSWORD = 'Comparte la contraseña por un canal seguro.';
+
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<TeacherSummary[] | null>(null);
   const [error, setError] = useState('');
@@ -30,11 +32,11 @@ export function AdminTeachers() {
   }, [reload]);
 
   /** Cierra los modales, avisa del éxito y recarga la lista. */
-  async function done(message: string, detail?: string) {
+  async function done(message: string, extras?: Parameters<typeof showAlert>[1]) {
     setCreating(false);
     setEditing(null);
     setDeleting(null);
-    showAlert(message, detail);
+    showAlert(message, extras);
     await reload();
   }
 
@@ -89,7 +91,7 @@ export function AdminTeachers() {
         <TeacherForm
           onSubmit={async (input) => {
             const t = await api.createTeacher({ ...input, password: input.password ?? '' });
-            await done('Profesor creado correctamente', `Cuenta: ${t.email}. Comparte la contraseña por un canal seguro.`);
+            await done('Profesor creado correctamente', { detail: `Cuenta: ${t.email}`, important: SHARE_PASSWORD });
           }}
         />
       </Modal>
@@ -100,7 +102,7 @@ export function AdminTeachers() {
             onSubmit={async (input) => {
               await api.updateTeacher(editing.id, { fullName: input.fullName, email: input.email });
               if (input.password) await api.setPassword(editing.id, input.password);
-              await done('Cambios guardados correctamente', input.password ? 'Comparte la contraseña por un canal seguro.' : undefined);
+              await done('Cambios guardados correctamente', input.password ? { important: SHARE_PASSWORD } : undefined);
             }}
           />
         )}
