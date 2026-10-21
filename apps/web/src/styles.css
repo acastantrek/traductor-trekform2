@@ -770,24 +770,134 @@ select:focus {
   gap: 10px;
 }
 
+/* Opción de idioma: tarjeta con el código en una pastilla amarilla, como los bloques de trekform.com. */
+.language-option {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px 16px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+.language-option:hover,
+.language-option:active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.language-code {
+  display: grid;
+  place-items: center;
+  min-width: 40px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .student {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
 
+/* Barra del alumno: la misma franja oscura con filo amarillo que la barra de la app. */
 .student-bar {
+  --focus: var(--accent);
   position: sticky;
   top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 16px 12px;
+  background: var(--brand-dark);
+  color: var(--brand-dark-text);
+  border-bottom: 3px solid var(--accent);
+}
+
+.student-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.student-head .logo {
+  flex: none;
+}
+
+.student-title {
+  flex: 1;
+  min-width: 0;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, var(--brand-dark-text) 30%, transparent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.live-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 35%, transparent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.student-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  justify-content: space-between;
+}
+
+.student-bar select {
+  min-height: 40px;
+  width: auto;
+  background-color: transparent;
+  color: var(--brand-dark-text);
+  border-color: color-mix(in srgb, var(--brand-dark-text) 40%, transparent);
+  font-weight: 700;
+}
+
+.student-bar select option {
+  color: var(--text);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  z-index: 1;
 }
 
 .tools {
@@ -796,15 +906,40 @@ select:focus {
   gap: 6px;
 }
 
+.student-bar .btn {
+  background: transparent;
+  color: var(--brand-dark-text);
+  border-color: color-mix(in srgb, var(--brand-dark-text) 40%, transparent);
+}
+
+.student-bar .btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Opción activa (Contraste, Auto-scroll): relleno amarillo de marca. */
+.student-bar .btn[aria-pressed='true'],
+.student-bar .btn[aria-pressed='true']:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
 .banner {
   margin: 0;
-  padding: 8px 16px;
+  padding: 10px 16px;
   text-align: center;
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .banner.warn {
   background: color-mix(in srgb, var(--warn) 18%, var(--surface));
+  color: var(--text);
 }
 
 .subtitles {
@@ -835,8 +970,16 @@ select:focus {
   margin: 0 0 0.7em;
 }
 
-.subtitles p:last-of-type {
+/* La frase más reciente se destaca con el filo amarillo de marca. */
+.subtitles p:last-of-type:not(.placeholder) {
   font-weight: 600;
+  margin-left: -12px;
+  padding-left: 8px;
+  border-left: 4px solid var(--accent);
+}
+
+.subtitles .placeholder {
+  color: var(--muted);
 }
 
 .student.contrast {
@@ -845,6 +988,9 @@ select:focus {
   --text: #ffff00;
   --muted: #ffffff;
   --border: #ffffff;
+  --brand-dark: #000;
+  --accent: #ffff00;
+  --accent-text: #000;
   background: var(--bg);
   color: var(--text);
 }

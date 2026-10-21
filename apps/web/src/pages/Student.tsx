@@ -9,6 +9,7 @@ import {
 } from '@ct/shared';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router';
+import { Logo } from '../components/Logo';
 import { PageLoader } from '../components/Spinner';
 import { api, HttpError } from '../lib/api';
 import { connectSocket, wsUrl, type ReconnectingSocket, type SocketState } from '../lib/socket';
@@ -221,13 +222,17 @@ export function Student() {
   if (!language) {
     return (
       <main className="page narrow">
-        <header className="brand">
+        <header className="brand login-hero">
+          <Logo height={32} />
           <h1>{session.title}</h1>
-          <p className="muted">Elige tu idioma · Choose your language</p>
+          <p>Elige tu idioma · Choose your language</p>
         </header>
         <div className="language-list">
           {allowed.map((l) => (
-            <button key={l} className="btn big" lang={l} onClick={() => choose(l)}>
+            <button key={l} className="language-option" lang={l} onClick={() => choose(l)}>
+              <span className="language-code" aria-hidden="true">
+                {l.toUpperCase()}
+              </span>
               {LANGUAGES[l]}
             </button>
           ))}
@@ -240,26 +245,33 @@ export function Student() {
   return (
     <main className={`student ${prefs.contrast ? 'contrast' : ''}`}>
       <header className="student-bar">
-        <select aria-label="Idioma" value={language} onChange={(e) => choose(e.target.value as Language)}>
-          {allowed.map((l) => (
-            <option key={l} value={l}>
-              {LANGUAGES[l]}
-            </option>
-          ))}
-        </select>
-        <div className="tools">
-          <RepeatButton label="Reducir texto" disabled={prefs.size <= FONT_MIN} onStep={() => resize(-FONT_STEP)}>
-            A−
-          </RepeatButton>
-          <RepeatButton label="Aumentar texto" disabled={prefs.size >= FONT_MAX} onStep={() => resize(FONT_STEP)}>
-            A+
-          </RepeatButton>
-          <button className="btn small" aria-pressed={prefs.contrast} onClick={() => updatePrefs({ contrast: !prefs.contrast })}>
-            Contraste
-          </button>
-          <button className="btn small" aria-pressed={prefs.autoscroll} onClick={() => updatePrefs({ autoscroll: !prefs.autoscroll })}>
-            Auto-scroll
-          </button>
+        <div className="student-head">
+          <Logo height={18} />
+          <span className="student-title">{session.title}</span>
+          {status === 'live' && <span className="live-chip">En directo</span>}
+        </div>
+        <div className="student-controls">
+          <select aria-label="Idioma" value={language} onChange={(e) => choose(e.target.value as Language)}>
+            {allowed.map((l) => (
+              <option key={l} value={l}>
+                {LANGUAGES[l]}
+              </option>
+            ))}
+          </select>
+          <div className="tools">
+            <RepeatButton label="Reducir texto" disabled={prefs.size <= FONT_MIN} onStep={() => resize(-FONT_STEP)}>
+              A−
+            </RepeatButton>
+            <RepeatButton label="Aumentar texto" disabled={prefs.size >= FONT_MAX} onStep={() => resize(FONT_STEP)}>
+              A+
+            </RepeatButton>
+            <button className="btn small" aria-pressed={prefs.contrast} onClick={() => updatePrefs({ contrast: !prefs.contrast })}>
+              Contraste
+            </button>
+            <button className="btn small" aria-pressed={prefs.autoscroll} onClick={() => updatePrefs({ autoscroll: !prefs.autoscroll })}>
+              Auto-scroll
+            </button>
+          </div>
         </div>
       </header>
 
@@ -277,7 +289,7 @@ export function Student() {
       )}
 
       <section className="subtitles" lang={language} aria-live="polite" style={{ fontSize: prefs.size }}>
-        {!lines.length && <p className="muted">Los subtítulos aparecerán aquí.</p>}
+        {!lines.length && <p className="placeholder">Los subtítulos aparecerán aquí.</p>}
         {lines.map((l) => (
           <p key={l.sequence}>{l.text}</p>
         ))}
