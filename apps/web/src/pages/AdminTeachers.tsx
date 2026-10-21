@@ -57,7 +57,7 @@ export function AdminTeachers() {
             {teachers.map((t) => (
               <li key={t.id} className="row spread">
                 <span>
-                  {t.fullName || '—'} <span className="muted small">{t.email}</span>
+                  {t.fullName || '—'} <span className="muted small user-email">{t.email}</span>
                 </span>
                 <span className="row">
                   <button

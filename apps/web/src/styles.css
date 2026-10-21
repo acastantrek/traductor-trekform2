@@ -453,6 +453,10 @@ select:focus {
   border-bottom: 1px solid var(--border);
 }
 
+.user-email {
+  margin-left: 16px;
+}
+
 .user-list > li:first-child {
   padding-top: 0;
 }
