@@ -4,12 +4,10 @@ Tareas aplazadas conscientemente. Al retomar una, se mueve a hecho o se borra.
 
 ## Pendiente
 
-### Migración «todos los idiomas» en producción
+### Borrar la columna `courses.allowed_target_languages`
 - **Desde:** 2026-10-21
-- **Qué:** aplicar `supabase/migrations/20261021000001_all_languages_per_course.sql` en el Supabase de producción (`npx supabase db push` con el proyecto vinculado).
-- **Por qué:** los cursos ya no guardan idiomas de destino. Sin la migración, crear un curso desde la API nueva falla (la columna `allowed_target_languages` sigue siendo obligatoria).
-- **Orden:** da igual migrar antes o después de desplegar la API; la migración solo relaja la columna.
-- **Más adelante:** borrar la columna `allowed_target_languages`, que ya no se usa.
+- **Contexto:** desde que todos los cursos ofrecen todos los idiomas, la columna no se usa. La migración `20261021000001_all_languages_per_course.sql` (aplicada en producción el 2026-10-21) solo la hizo opcional, para no romper la API anterior durante el despliegue.
+- **Cuándo:** cuando la API nueva lleve desplegada un tiempo; basta una migración con `alter table public.courses drop column allowed_target_languages;`.
 
 ### Prueba real con micrófono y Deepgram (validación F0)
 - **Desde:** 2026-10-19
