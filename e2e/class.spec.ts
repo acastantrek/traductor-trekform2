@@ -47,6 +47,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await admin.getByRole('button', { name: 'Nuevo curso' }).click();
   await admin.getByLabel('Nombre del curso').fill(course);
   await expect(admin.getByLabel('Idioma del profesor')).toHaveValue('es');
+  await admin.getByRole('button', { name: /Profesores del curso/ }).click();
   await admin.getByLabel(teacherName).check();
   await admin.getByRole('button', { name: 'Crear curso' }).click();
   await admin.getByRole('dialog', { name: 'Curso creado correctamente' }).getByRole('button', { name: 'Aceptar' }).click();

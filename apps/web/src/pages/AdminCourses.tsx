@@ -75,7 +75,7 @@ export function AdminCourses() {
         </article>
       ))}
       <Pagination {...pagination} noun="cursos" onChange={pagination.setPage} />
-      <Modal open={creating} title="Nuevo curso" onClose={() => setCreating(false)}>
+      <Modal open={creating} title="Nuevo curso" size="lg" onClose={() => setCreating(false)}>
         <CourseForm
           teachers={teachers}
           submitLabel="Crear curso"
@@ -90,7 +90,7 @@ export function AdminCourses() {
           }}
         />
       </Modal>
-      <Modal open={!!editing} title="Editar curso" onClose={() => setEditing(null)}>
+      <Modal open={!!editing} title="Editar curso" size="lg" onClose={() => setEditing(null)}>
         {editing && (
           <CourseForm
             initial={editing}
