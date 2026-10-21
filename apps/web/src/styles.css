@@ -814,6 +814,21 @@ select:focus {
   width: 100%;
   margin: 0 auto;
   line-height: 1.4;
+  transition: font-size 0.12s ease-out;
+}
+
+/* A−/A+: se mantienen pulsados sin seleccionar texto ni abrir el menú del móvil. */
+.btn.repeat {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subtitles {
+    transition: none;
+  }
 }
 
 .subtitles p {

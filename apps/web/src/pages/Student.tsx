@@ -7,14 +7,19 @@ import {
   type StudentServerEvent,
   type SubtitleEvent,
 } from '@ct/shared';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router';
 import { PageLoader } from '../components/Spinner';
 import { api, HttpError } from '../lib/api';
 import { connectSocket, wsUrl, type ReconnectingSocket, type SocketState } from '../lib/socket';
 
 const MAX_LINES = 200;
-const FONT_SIZES = [18, 22, 26, 32, 40];
+// Tamaño de los subtítulos en px: pasos pequeños para que A−/A+ lo cambien de forma progresiva.
+const FONT_MIN = 16;
+const FONT_MAX = 64;
+const FONT_STEP = 2;
+const FONT_DEFAULT = 26;
+const clampSize = (size: number) => Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(size)));
 
 interface Prefs {
   size: number;
@@ -39,6 +44,56 @@ function save(key: string, value: unknown) {
   }
 }
 
+/** Botón que repite la acción mientras se mantiene pulsado (ratón o dedo). Con teclado, un paso por pulsación. */
+function RepeatButton({
+  label,
+  disabled,
+  onStep,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onStep(): void;
+  children: ReactNode;
+}) {
+  const delay = useRef(0);
+  const repeat = useRef(0);
+  const stop = useCallback(() => {
+    window.clearTimeout(delay.current);
+    window.clearInterval(repeat.current);
+  }, []);
+
+  useEffect(() => stop, [stop]);
+  // Al llegar al límite el botón se deshabilita y deja de recibir pointerup: se corta aquí.
+  useEffect(() => {
+    if (disabled) stop();
+  }, [disabled, stop]);
+
+  return (
+    <button
+      className="btn small repeat"
+      aria-label={label}
+      disabled={disabled}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        stop();
+        onStep();
+        delay.current = window.setTimeout(() => {
+          repeat.current = window.setInterval(onStep, 90);
+        }, 400);
+      }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      // El clic de ratón/dedo ya se cuenta en pointerdown; detail = 0 es Enter o Espacio.
+      onClick={(e) => e.detail === 0 && onStep()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {children}
+    </button>
+  );
+}
+
 function merge(lines: SubtitleEvent[], incoming: SubtitleEvent[]) {
   const bySeq = new Map(lines.map((l) => [l.sequence, l]));
   for (const l of incoming) bySeq.set(l.sequence, l);
@@ -54,7 +109,11 @@ export function Student() {
   const [status, setStatus] = useState<SessionStatus>('ready');
   const [socketState, setSocketState] = useState<SocketState>('connecting');
   const [fatal, setFatal] = useState('');
-  const [prefs, setPrefs] = useState<Prefs>(() => load('ct:prefs', { size: 26, contrast: false, autoscroll: true }));
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    const stored = load('ct:prefs', { size: FONT_DEFAULT, contrast: false, autoscroll: true });
+    // Valores guardados por versiones anteriores (o corruptos) se ajustan al rango actual.
+    return { ...stored, size: clampSize(Number(stored.size) || FONT_DEFAULT) };
+  });
   const socket = useRef<ReconnectingSocket | null>(null);
   const languageRef = useRef<Language | null>(null);
   const lastSequence = useRef(0);
@@ -135,13 +194,16 @@ export function Student() {
   }
   languageRef.current = language;
 
-  function updatePrefs(patch: Partial<Prefs>) {
+  function updatePrefs(patch: Partial<Prefs> | ((p: Prefs) => Partial<Prefs>)) {
     setPrefs((p) => {
-      const next = { ...p, ...patch };
+      const next = { ...p, ...(typeof patch === 'function' ? patch(p) : patch) };
       save('ct:prefs', next);
       return next;
     });
   }
+
+  // Funcional: al mantener pulsado, cada paso parte del tamaño más reciente.
+  const resize = (delta: number) => updatePrefs((p) => ({ size: clampSize(p.size + delta) }));
 
   if (loadError || fatal) {
     return (
@@ -174,7 +236,6 @@ export function Student() {
     );
   }
 
-  const sizeIndex = FONT_SIZES.indexOf(prefs.size);
 
   return (
     <main className={`student ${prefs.contrast ? 'contrast' : ''}`}>
@@ -187,22 +248,12 @@ export function Student() {
           ))}
         </select>
         <div className="tools">
-          <button
-            className="btn small"
-            aria-label="Reducir texto"
-            disabled={sizeIndex <= 0}
-            onClick={() => updatePrefs({ size: FONT_SIZES[Math.max(0, sizeIndex - 1)]! })}
-          >
+          <RepeatButton label="Reducir texto" disabled={prefs.size <= FONT_MIN} onStep={() => resize(-FONT_STEP)}>
             A−
-          </button>
-          <button
-            className="btn small"
-            aria-label="Aumentar texto"
-            disabled={sizeIndex >= FONT_SIZES.length - 1}
-            onClick={() => updatePrefs({ size: FONT_SIZES[Math.min(FONT_SIZES.length - 1, sizeIndex + 1)]! })}
-          >
+          </RepeatButton>
+          <RepeatButton label="Aumentar texto" disabled={prefs.size >= FONT_MAX} onStep={() => resize(FONT_STEP)}>
             A+
-          </button>
+          </RepeatButton>
           <button className="btn small" aria-pressed={prefs.contrast} onClick={() => updatePrefs({ contrast: !prefs.contrast })}>
             Contraste
           </button>
