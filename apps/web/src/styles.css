@@ -1174,3 +1174,36 @@ select:focus {
     animation: fade-in 0.2s both;
   }
 }
+
+/* Paginación: resumen a la izquierda y páginas a la derecha; la actual en amarillo de marca. */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.pagination-pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination-pages .btn {
+  min-width: 40px;
+  padding: 6px 10px;
+}
+
+.pagination-pages .btn[aria-current='page'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  cursor: default;
+}
+
+.pagination-gap {
+  padding: 0 4px;
+  color: var(--muted);
+}

@@ -40,7 +40,8 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await expect(alert).toContainText(teacherEmail);
   await alert.getByRole('button', { name: 'Aceptar' }).click();
   await expect(alert).toBeHidden();
-  await expect(admin.locator('.user-list')).toContainText(teacherEmail);
+  // La lista de profesores está paginada (puede caer en otra página): su existencia se
+  // comprueba con el aviso de arriba y al asignarlo al curso, donde aparecen todos.
 
   await admin.getByRole('link', { name: 'Cursos', exact: true }).click();
   await admin.getByRole('button', { name: 'Nuevo curso' }).click();

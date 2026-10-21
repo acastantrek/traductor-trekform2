@@ -2,6 +2,7 @@ import type { TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { EditIcon, TrashIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
+import { Pagination, usePagination } from '../components/Pagination';
 import { Loader, Spinner } from '../components/Spinner';
 import { useSuccessAlert } from '../components/SuccessAlert';
 import { api } from '../lib/api';
@@ -13,6 +14,7 @@ export function AdminTeachers() {
   const [editing, setEditing] = useState<TeacherSummary | null>(null);
   const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
   const showAlert = useSuccessAlert();
+  const pagination = usePagination(teachers);
 
   const reload = useCallback(async () => {
     try {
@@ -54,7 +56,7 @@ export function AdminTeachers() {
       {!!teachers?.length && (
         <div className="card">
           <ul className="plain-list user-list">
-            {teachers.map((t) => (
+            {pagination.pageItems?.map((t) => (
               <li key={t.id} className="row spread">
                 <span>
                   {t.fullName || '—'} <span className="muted small user-email">{t.email}</span>
@@ -82,6 +84,7 @@ export function AdminTeachers() {
           </ul>
         </div>
       )}
+      <Pagination {...pagination} noun="profesores" onChange={pagination.setPage} />
       <Modal open={creating} title="Nuevo profesor" onClose={() => setCreating(false)}>
         <TeacherForm
           onSubmit={async (input) => {

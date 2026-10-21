@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CourseForm } from '../components/CourseForm';
 import { EditIcon, TrashIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
+import { Pagination, usePagination } from '../components/Pagination';
 import { Loader, Spinner } from '../components/Spinner';
 import { useSuccessAlert } from '../components/SuccessAlert';
 import { api } from '../lib/api';
@@ -13,6 +14,7 @@ export function AdminCourses() {
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const showAlert = useSuccessAlert();
+  const pagination = usePagination(courses);
   const [deleting, setDeleting] = useState<Course | null>(null);
   const [error, setError] = useState('');
 
@@ -58,6 +60,8 @@ export function AdminCourses() {
             onSubmit={async (input) => {
               await api.createCourse(input);
               setCreating(false);
+              // Los cursos van del más reciente al más antiguo: el nuevo queda en la primera página.
+              pagination.setPage(1);
               showAlert('Curso creado correctamente');
               await reload();
             }}
@@ -66,7 +70,7 @@ export function AdminCourses() {
       )}
       {courses === null && !error && <Loader label="Cargando cursos…" />}
       {courses?.length === 0 && !creating && <p className="muted">Aún no hay cursos.</p>}
-      {courses?.map((c) =>
+      {pagination.pageItems?.map((c) =>
         editing === c.id ? (
           <div key={c.id} className="card">
             <CourseForm
@@ -109,6 +113,7 @@ export function AdminCourses() {
           </article>
         ),
       )}
+      <Pagination {...pagination} noun="cursos" onChange={pagination.setPage} />
       <Modal open={!!deleting} title="Eliminar curso" onClose={() => setDeleting(null)}>
         {deleting && (
           <DeleteCourse

@@ -1,20 +1,21 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { Logo } from '../components/Logo';
 import { Spinner } from '../components/Spinner';
-import { useAuth } from '../lib/auth';
+import { homeFor, useAuth } from '../lib/auth';
 
 export function Login() {
   const { me, signIn } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const from = (location.state as { from?: string } | null)?.from;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (me) return <Navigate to={from} replace />;
+  // Única redirección tras el login (una segunda navegación desde submit competía con esta y
+  // con la redirección por rol, y a veces dejaba al admin en «/»).
+  if (me) return <Navigate to={from ?? homeFor(me)} replace />;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -22,7 +23,6 @@ export function Login() {
     setBusy(true);
     try {
       await signIn(email.trim(), password);
-      navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión');
       setBusy(false);
