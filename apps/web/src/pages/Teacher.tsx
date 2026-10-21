@@ -199,7 +199,7 @@ export function Teacher() {
           </h1>
           {session && (
             <p className="muted">
-              {LANGUAGES[session.sourceLanguage]} → {session.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
+              {LANGUAGES[session.sourceLanguage]} → todos los idiomas
             </p>
           )}
         </div>
@@ -319,7 +319,10 @@ export function Teacher() {
           <p className="big-number">{audience?.total ?? 0}</p>
           <ul className="audience">
             {session &&
-              [session.sourceLanguage, ...session.targetLanguages].map((l) => {
+              // Con todos los idiomas disponibles, solo se listan el del profesor y los que están en uso.
+              [session.sourceLanguage, ...session.targetLanguages]
+                .filter((l) => l === session.sourceLanguage || (audience?.byLanguage[l] ?? 0) > 0 || audience?.activeLanguages.includes(l))
+                .map((l) => {
                 const count = audience?.byLanguage[l] ?? 0;
                 const active = l === session.sourceLanguage || audience?.activeLanguages.includes(l);
                 return (

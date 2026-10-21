@@ -1,17 +1,8 @@
-import {
-  LANGUAGE_CODES,
-  LANGUAGES,
-  MAX_TARGET_LANGUAGES,
-  SOURCE_LANGUAGES,
-  type CourseInput,
-  type Language,
-  type SourceLanguage,
-  type TeacherSummary,
-} from '@ct/shared';
+import { LANGUAGES, SOURCE_LANGUAGES, type CourseInput, type SourceLanguage, type TeacherSummary } from '@ct/shared';
 import { useState, type FormEvent } from 'react';
 import { Spinner } from './Spinner';
 
-const EMPTY: CourseInput = { name: '', sourceLanguage: 'es', targetLanguages: ['en', 'fr', 'ar', 'ro'], teacherIds: [] };
+const EMPTY: CourseInput = { name: '', sourceLanguage: 'es', teacherIds: [] };
 
 interface Props {
   initial?: CourseInput;
@@ -24,14 +15,10 @@ interface Props {
 export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, onCancel }: Props) {
   const [name, setName] = useState(initial.name);
   const [source, setSource] = useState<SourceLanguage>(initial.sourceLanguage);
-  const [targets, setTargets] = useState<Language[]>(initial.targetLanguages);
   // Descarta asignaciones que no estén en la lista (p. ej. admins asignados antes).
   const [teacherIds, setTeacherIds] = useState(initial.teacherIds.filter((id) => teachers.some((t) => t.id === id)));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const available = LANGUAGE_CODES.filter((l) => l !== source);
-  const selected = targets.filter((l) => l !== source);
 
   const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
 
@@ -40,7 +27,7 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
     setError('');
     setBusy(true);
     try {
-      await onSubmit({ name: name.trim(), sourceLanguage: source, targetLanguages: selected, teacherIds });
+      await onSubmit({ name: name.trim(), sourceLanguage: source, teacherIds });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el curso');
     } finally {
@@ -70,27 +57,7 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
           ))}
         </select>
       </label>
-      <fieldset className="field">
-        <legend>
-          Idiomas para los alumnos <span className="muted">({selected.length}/{MAX_TARGET_LANGUAGES})</span>
-        </legend>
-        <div className="chips">
-          {available.map((l) => {
-            const on = selected.includes(l);
-            return (
-              <label key={l} className={`chip ${on ? 'on' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={!on && selected.length >= MAX_TARGET_LANGUAGES}
-                  onChange={() => setTargets((t) => toggle(t, l))}
-                />
-                {LANGUAGES[l]}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+      <p className="muted small">Los alumnos pueden elegir cualquiera de los idiomas disponibles.</p>
       <fieldset className="field">
         <legend>Profesores del curso</legend>
         {teachers.length === 0 && <p className="muted small">Todavía no hay profesores. Créalos en la pestaña Profesores.</p>}
@@ -112,7 +79,7 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
         </p>
       )}
       <div className="row">
-        <button className="btn primary" disabled={busy || !name.trim() || !selected.length}>
+        <button className="btn primary" disabled={busy || !name.trim()}>
           {busy ? (
             <>
               <Spinner /> Guardando…

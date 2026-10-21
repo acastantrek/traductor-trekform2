@@ -74,7 +74,7 @@ export function Dashboard() {
               <article key={c.id} className="card course-card">
                 <h3>{c.name}</h3>
                 <p className="muted small">
-                  {LANGUAGES[c.sourceLanguage]} → {c.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
+                  {LANGUAGES[c.sourceLanguage]} → todos los idiomas
                 </p>
                 <button className="btn primary" disabled={!!busy} onClick={() => void start(c)}>
                   {busy === c.id ? (

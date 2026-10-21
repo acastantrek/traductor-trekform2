@@ -77,11 +77,11 @@ describe('Supabase (local)', () => {
 
   it('cursos, miembros, sesiones y métricas', async () => {
     const course = await repo.createCourse(
-      { name: `Curso ${tag}`, sourceLanguage: 'ca', targetLanguages: ['en', 'es'], teacherIds: [teacherId] },
+      { name: `Curso ${tag}`, sourceLanguage: 'ca', teacherIds: [teacherId] },
       teacherId,
     );
     courseId = course.id;
-    expect(course).toMatchObject({ sourceLanguage: 'ca', targetLanguages: ['en', 'es'], teacherIds: [teacherId] });
+    expect(course).toMatchObject({ sourceLanguage: 'ca', teacherIds: [teacherId] });
 
     const teacherView = { id: teacherId, email: '', fullName: '', role: 'teacher' as const };
     const otherView = { ...teacherView, id: otherId };
@@ -91,10 +91,9 @@ describe('Supabase (local)', () => {
     const updated = await repo.updateCourse(course.id, {
       name: `Curso ${tag} v2`,
       sourceLanguage: 'ca',
-      targetLanguages: ['fr'],
       teacherIds: [otherId],
     });
-    expect(updated).toMatchObject({ targetLanguages: ['fr'], teacherIds: [otherId] });
+    expect(updated).toMatchObject({ name: `Curso ${tag} v2`, teacherIds: [otherId] });
 
     const sessionId = `t-${tag}`;
     await repo.createSession({

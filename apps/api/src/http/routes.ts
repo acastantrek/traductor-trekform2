@@ -1,33 +1,19 @@
-import {
-  LANGUAGE_CODES,
-  MAX_TARGET_LANGUAGES,
-  SOURCE_LANGUAGES,
-  type Language,
-  type SessionAction,
-} from '@ct/shared';
+import { SOURCE_LANGUAGES, targetLanguagesFor, type SessionAction } from '@ct/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { SessionRegistry } from '../domain/registry.js';
 import { ConflictError, type AuthVerifier, type Repository } from '../db/types.js';
 
-const language = z.enum(LANGUAGE_CODES as [Language, ...Language[]]);
 const uuid = z.string().uuid();
 
+// Los idiomas de destino ya no son del curso: todos los cursos ofrecen todos (targetLanguagesFor).
 const courseSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     sourceLanguage: z.enum(SOURCE_LANGUAGES),
-    targetLanguages: z.array(language).min(1).max(MAX_TARGET_LANGUAGES),
     teacherIds: z.array(uuid).max(50).default([]),
   })
-  .transform((v) => ({
-    ...v,
-    targetLanguages: [...new Set(v.targetLanguages)].filter((l) => l !== v.sourceLanguage),
-    teacherIds: [...new Set(v.teacherIds)],
-  }))
-  .refine((v) => v.targetLanguages.length > 0, {
-    message: 'Debe haber al menos un idioma de destino distinto del de origen',
-  });
+  .transform((v) => ({ ...v, teacherIds: [...new Set(v.teacherIds)] }));
 
 const password = z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').max(128);
 
@@ -184,12 +170,13 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     if (!course.teacherIds.includes(user.id)) return fail(reply, 403, 'forbidden', 'No eres profesor de este curso');
     if (registry.full) return fail(reply, 503, 'capacity', 'Se ha alcanzado el máximo de sesiones');
 
+    const targetLanguages = targetLanguagesFor(course.sourceLanguage);
     const session = registry.create({
       courseId: course.id,
       teacherId: user.id,
       title: course.name,
       sourceLanguage: course.sourceLanguage,
-      targetLanguages: course.targetLanguages,
+      targetLanguages,
     });
     try {
       await repo.createSession({
@@ -197,7 +184,7 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
         courseId: course.id,
         teacherId: user.id,
         sourceLanguage: course.sourceLanguage,
-        targetLanguages: course.targetLanguages,
+        targetLanguages,
       });
     } catch (err) {
       registry.discard(session.id);

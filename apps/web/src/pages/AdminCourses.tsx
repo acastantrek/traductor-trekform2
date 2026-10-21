@@ -91,7 +91,7 @@ export function AdminCourses() {
             <div>
               <h3>{c.name}</h3>
               <p className="muted small">
-                {LANGUAGES[c.sourceLanguage]} → {c.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
+                {LANGUAGES[c.sourceLanguage]} → todos los idiomas
               </p>
               <p className="small">
                 Profesores: {teacherNames(c).join(', ') || <em className="muted">ninguno</em>}

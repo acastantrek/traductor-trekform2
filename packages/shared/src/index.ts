@@ -30,7 +30,10 @@ export function isLanguage(value: unknown): value is Language {
 
 export type SessionStatus = 'ready' | 'live' | 'paused' | 'ended';
 
-export const MAX_TARGET_LANGUAGES = 8;
+/** Todos los cursos ofrecen todos los idiomas: los destinos son todos salvo el del profesor. */
+export function targetLanguagesFor(source: Language): Language[] {
+  return LANGUAGE_CODES.filter((l) => l !== source);
+}
 
 // ---------- REST ----------
 // Rutas de profesor/admin: `Authorization: Bearer <access token de Supabase Auth>`.
@@ -68,7 +71,6 @@ export interface Course {
   id: string;
   name: string;
   sourceLanguage: SourceLanguage;
-  targetLanguages: Language[];
   teacherIds: string[];
   createdAt: string;
 }
@@ -77,7 +79,6 @@ export interface Course {
 export interface CourseInput {
   name: string;
   sourceLanguage: SourceLanguage;
-  targetLanguages: Language[];
   teacherIds: string[];
 }
 

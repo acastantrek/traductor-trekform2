@@ -29,12 +29,11 @@ interface CourseRow {
   id: string;
   name: string;
   source_language: SourceLanguage;
-  allowed_target_languages: Language[];
   created_at: string;
   course_members: { user_id: string }[];
 }
 
-const COURSE_COLUMNS = 'id, name, source_language, allowed_target_languages, created_at, course_members(user_id)';
+const COURSE_COLUMNS = 'id, name, source_language, created_at, course_members(user_id)';
 
 const toUser = (p: ProfileRow): AuthUser => ({
   id: p.id,
@@ -47,7 +46,6 @@ const toCourse = (c: CourseRow): Course => ({
   id: c.id,
   name: c.name,
   sourceLanguage: c.source_language,
-  targetLanguages: c.allowed_target_languages,
   teacherIds: c.course_members.map((m) => m.user_id),
   createdAt: c.created_at,
 });
@@ -176,7 +174,6 @@ export class SupabaseRepository implements Repository {
         .insert({
           name: input.name,
           source_language: input.sourceLanguage,
-          allowed_target_languages: input.targetLanguages,
           created_by: createdBy,
         })
         .select('id')
@@ -193,7 +190,6 @@ export class SupabaseRepository implements Repository {
         .update({
           name: input.name,
           source_language: input.sourceLanguage,
-          allowed_target_languages: input.targetLanguages,
         })
         .eq('id', id)
         .select('id'),
