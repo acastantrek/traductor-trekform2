@@ -48,6 +48,8 @@ export interface Repository {
   getCourse(id: string): Promise<Course | null>;
   createCourse(input: CourseInput, createdBy: string): Promise<Course>;
   updateCourse(id: string, input: CourseInput): Promise<Course | null>;
+  /** Borra el curso con sus asignaciones, sesiones y métricas (cascada en BD). false si no existe. */
+  deleteCourse(id: string): Promise<boolean>;
 
   createSession(row: SessionRow): Promise<void>;
   updateSessionStatus(id: string, status: SessionStatus): Promise<void>;

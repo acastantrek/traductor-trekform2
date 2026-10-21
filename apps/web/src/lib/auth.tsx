@@ -12,6 +12,8 @@ interface AuthState {
   me: Me | null | undefined;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Cambia la contraseña propia tras comprobar la actual. */
+  changePassword(current: string, next: string): Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -49,6 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async signOut() {
       await supabase.auth.signOut();
       setMe(null);
+    },
+    async changePassword(current, next) {
+      if (!me) throw new Error('Inicia sesión para continuar');
+      // Supabase no pide la actual (secure_password_change = false): se verifica con un login.
+      const check = await supabase.auth.signInWithPassword({ email: me.email, password: current });
+      if (check.error) throw new Error('La contraseña actual no es correcta');
+      const { error } = await supabase.auth.updateUser({ password: next });
+      if (error) throw new Error(error.message);
     },
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

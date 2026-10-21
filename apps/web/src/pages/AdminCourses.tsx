@@ -1,7 +1,9 @@
 import { LANGUAGES, type Course, type TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { CourseForm } from '../components/CourseForm';
-import { Loader } from '../components/Spinner';
+import { EditIcon, TrashIcon } from '../components/Icons';
+import { Modal } from '../components/Modal';
+import { Loader, Spinner } from '../components/Spinner';
 import { api } from '../lib/api';
 
 export function AdminCourses() {
@@ -9,13 +11,15 @@ export function AdminCourses() {
   const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Course | null>(null);
   const [error, setError] = useState('');
 
   const reload = useCallback(async () => {
     try {
       const [c, t] = await Promise.all([api.courses(), api.teachers()]);
       setCourses(c);
-      setTeachers(t);
+      // El admin abre cualquier curso sin estar asignado: solo se asignan profesores.
+      setTeachers(t.filter((u) => u.role === 'teacher'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los datos');
     }
@@ -25,10 +29,8 @@ export function AdminCourses() {
     void reload();
   }, [reload]);
 
-  const teacherName = (id: string) => {
-    const t = teachers.find((x) => x.id === id);
-    return t ? t.fullName || t.email : '—';
-  };
+  const teacherNames = (c: Course) =>
+    teachers.filter((t) => c.teacherIds.includes(t.id)).map((t) => t.fullName || t.email);
 
   return (
     <section className="stack section">
@@ -84,15 +86,82 @@ export function AdminCourses() {
                 {LANGUAGES[c.sourceLanguage]} → {c.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
               </p>
               <p className="small">
-                Profesores: {c.teacherIds.length ? c.teacherIds.map(teacherName).join(', ') : <em className="muted">ninguno</em>}
+                Profesores: {teacherNames(c).join(', ') || <em className="muted">ninguno</em>}
               </p>
             </div>
-            <button className="btn" onClick={() => setEditing(c.id)}>
-              Editar
-            </button>
+            <div className="row">
+              <button className="btn icon" aria-label={`Editar ${c.name}`} title="Editar" onClick={() => setEditing(c.id)}>
+                <EditIcon />
+              </button>
+              <button
+                className="btn icon danger-hover"
+                aria-label={`Eliminar ${c.name}`}
+                title="Eliminar"
+                onClick={() => setDeleting(c)}
+              >
+                <TrashIcon />
+              </button>
+            </div>
           </article>
         ),
       )}
+      <Modal open={!!deleting} title="Eliminar curso" onClose={() => setDeleting(null)}>
+        {deleting && (
+          <DeleteCourse
+            course={deleting}
+            onCancel={() => setDeleting(null)}
+            onDeleted={async () => {
+              setDeleting(null);
+              await reload();
+            }}
+          />
+        )}
+      </Modal>
     </section>
+  );
+}
+
+function DeleteCourse({ course, onCancel, onDeleted }: { course: Course; onCancel(): void; onDeleted(): Promise<void> }) {
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setError('');
+    setBusy(true);
+    try {
+      await api.deleteCourse(course.id);
+      await onDeleted();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el curso');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack">
+      <p>
+        ¿Eliminar <strong>{course.name}</strong>? También se borrarán sus asignaciones y todo su historial de sesiones y
+        métricas. No se puede deshacer.
+      </p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row">
+        <button className="btn danger" disabled={busy} onClick={() => void remove()}>
+          {busy ? (
+            <>
+              <Spinner /> Eliminando…
+            </>
+          ) : (
+            'Eliminar curso'
+          )}
+        </button>
+        <button className="btn" disabled={busy} onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }

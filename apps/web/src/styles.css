@@ -284,6 +284,23 @@ select:focus {
   font-size: 0.72rem;
 }
 
+/* Botón cuadrado solo con icono. */
+.btn.icon {
+  width: 44px;
+  padding: 0;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.btn.danger-hover:hover:not(:disabled) {
+  border-color: var(--error);
+  color: var(--error);
+}
+
 .btn[aria-pressed='true'] {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, var(--surface));
@@ -508,6 +525,23 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.appbar-profile {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--brand-dark-text);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--brand-dark-text) 45%, transparent);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.appbar-profile:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .appbar .btn {
@@ -883,4 +917,24 @@ select:focus {
   .loader p {
     animation: none;
   }
+}
+
+.profile {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.profile dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.profile dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }

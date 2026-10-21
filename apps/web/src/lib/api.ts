@@ -60,6 +60,7 @@ export const api = {
   createCourse: (input: CourseInput) => request<Course>('/api/courses', { method: 'POST', json: input }),
   updateCourse: (id: string, input: CourseInput) =>
     request<Course>(`/api/courses/${encodeURIComponent(id)}`, { method: 'PATCH', json: input }),
+  deleteCourse: (id: string) => request<void>(`/api/courses/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   openSessions: () => request<TeacherSession[]>('/api/sessions'),
   createSession: (courseId: string) =>

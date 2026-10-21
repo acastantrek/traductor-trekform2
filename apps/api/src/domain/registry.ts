@@ -59,6 +59,11 @@ export class SessionRegistry {
     return this.sessions.size;
   }
 
+  /** Si el curso tiene alguna sesión sin finalizar. */
+  hasOpenSession(courseId: string) {
+    return [...this.sessions.values()].some((s) => s.courseId === courseId && s.status !== 'ended');
+  }
+
   /** Sesiones abiertas que el usuario puede operar. */
   openFor(user: { id: string; role: UserRole }) {
     return [...this.sessions.values()].filter((s) => s.status !== 'ended' && s.canControl(user));

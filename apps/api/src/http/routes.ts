@@ -134,6 +134,16 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     return course ?? fail(reply, 404, 'not_found', 'El curso no existe');
   });
 
+  app.delete('/api/courses/:id', async (req, reply) => {
+    if (!(await requireUser(req, reply, 'admin'))) return reply;
+    const params = z.object({ id: uuid }).safeParse(req.params);
+    if (!params.success) return fail(reply, 404, 'not_found', 'El curso no existe');
+    if (registry.hasOpenSession(params.data.id))
+      return fail(reply, 409, 'session_open', 'El curso tiene una clase abierta; finalízala antes de eliminarlo');
+    if (!(await repo.deleteCourse(params.data.id))) return fail(reply, 404, 'not_found', 'El curso no existe');
+    return reply.status(204).send();
+  });
+
   // ---------- Sesiones (FR-02, FR-13, FR-14) ----------
 
   app.get('/api/sessions', async (req, reply) => {

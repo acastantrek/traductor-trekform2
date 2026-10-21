@@ -25,7 +25,8 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
   const [name, setName] = useState(initial.name);
   const [source, setSource] = useState<SourceLanguage>(initial.sourceLanguage);
   const [targets, setTargets] = useState<Language[]>(initial.targetLanguages);
-  const [teacherIds, setTeacherIds] = useState<string[]>(initial.teacherIds);
+  // Descarta asignaciones que no estén en la lista (p. ej. admins asignados antes).
+  const [teacherIds, setTeacherIds] = useState(initial.teacherIds.filter((id) => teachers.some((t) => t.id === id)));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -92,7 +93,7 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
       </fieldset>
       <fieldset className="field">
         <legend>Profesores del curso</legend>
-        {teachers.length === 0 && <p className="muted small">Todavía no hay profesores. Créalos en la sección de abajo.</p>}
+        {teachers.length === 0 && <p className="muted small">Todavía no hay profesores. Créalos en la pestaña Profesores.</p>}
         <div className="chips">
           {teachers.map((t) => {
             const on = teacherIds.includes(t.id);
@@ -100,7 +101,6 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
               <label key={t.id} className={`chip ${on ? 'on' : ''}`}>
                 <input type="checkbox" checked={on} onChange={() => setTeacherIds((ids) => toggle(ids, t.id))} />
                 {t.fullName || t.email}
-                {t.role === 'admin' && <span className="muted small">(admin)</span>}
               </label>
             );
           })}

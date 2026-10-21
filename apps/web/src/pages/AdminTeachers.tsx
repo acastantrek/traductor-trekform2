@@ -12,7 +12,8 @@ export function AdminTeachers() {
 
   const reload = useCallback(async () => {
     try {
-      setTeachers(await api.teachers());
+      // Los admins no son profesores: cambian su contraseña desde «Mi perfil».
+      setTeachers((await api.teachers()).filter((u) => u.role === 'teacher'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los profesores');
     }
@@ -47,7 +48,8 @@ export function AdminTeachers() {
         </p>
       )}
       {teachers === null && !error && <Loader label="Cargando profesores…" />}
-      {teachers && (
+      {teachers?.length === 0 && <p className="muted">Aún no hay profesores.</p>}
+      {!!teachers?.length && (
         <div className="card">
           <ul className="plain-list user-list">
             {teachers.map((t) => (
@@ -69,7 +71,7 @@ export function AdminTeachers() {
   );
 }
 
-/** Fila de usuario (profesor o admin) con cambio de contraseña en línea. */
+/** Fila de profesor con cambio de contraseña en línea. */
 function UserRow({ user }: { user: TeacherSummary }) {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState('');
@@ -106,12 +108,9 @@ function UserRow({ user }: { user: TeacherSummary }) {
         <span>
           {user.fullName || '—'} <span className="muted small">{user.email}</span>
         </span>
-        <span className="row">
-          <span className="muted small">{user.role === 'admin' ? 'Admin' : 'Profesor'}</span>
-          <button className="btn small" aria-expanded={open} onClick={toggle}>
-            {open ? 'Cancelar' : 'Cambiar contraseña'}
-          </button>
-        </span>
+        <button className="btn small" aria-expanded={open} onClick={toggle}>
+          {open ? 'Cancelar' : 'Cambiar contraseña'}
+        </button>
       </div>
       {open && (
         <form className="row password-form" onSubmit={submit}>

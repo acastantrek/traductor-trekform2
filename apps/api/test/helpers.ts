@@ -116,6 +116,10 @@ export class MemoryRepository implements Repository {
     return course;
   }
 
+  async deleteCourse(id: string) {
+    return this.courses.delete(id);
+  }
+
   async createSession(row: SessionRow) {
     this.sessions.set(row.id, { ...row, status: 'ready' });
   }

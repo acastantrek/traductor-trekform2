@@ -106,6 +106,21 @@ describe('Auth y cursos', () => {
     expect(await (await call('GET', '/api/courses', admin)).json()).toHaveLength(2);
   });
 
+  it('solo el admin elimina cursos, y no con una clase abierta', async () => {
+    const course = await createCourse();
+    const path = `/api/courses/${course.id}`;
+    expect((await call('DELETE', path)).status).toBe(401);
+    expect((await call('DELETE', path, teacher)).status).toBe(403);
+    const res = await call('POST', '/api/sessions', teacher, { courseId: course.id });
+    const session = (await res.json()) as TeacherSession;
+    expect((await call('DELETE', path, admin)).status).toBe(409);
+    expect((await call('POST', `/api/sessions/${session.id}/end`, teacher)).status).toBe(200);
+    expect((await call('DELETE', path, admin)).status).toBe(204);
+    expect(await (await call('GET', '/api/courses', admin)).json()).toEqual([]);
+    expect((await call('DELETE', path, admin)).status).toBe(404);
+    expect((await call('DELETE', '/api/courses/no-es-uuid', admin)).status).toBe(404);
+  });
+
   it('el admin crea profesores y no permite emails duplicados', async () => {
     const body = { email: 'nuevo@test.local', fullName: 'Nuevo', password: 'contraseña-segura' };
     expect((await call('POST', '/api/teachers', admin, body)).status).toBe(201);

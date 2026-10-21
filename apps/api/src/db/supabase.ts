@@ -165,6 +165,11 @@ export class SupabaseRepository implements Repository {
     return this.getCourse(id);
   }
 
+  async deleteCourse(id: string) {
+    const deleted = check(await this.db.from('courses').delete().eq('id', id).select('id'));
+    return deleted.length > 0;
+  }
+
   private async setMembers(courseId: string, teacherIds: string[]) {
     const current = check(await this.db.from('course_members').select('user_id').eq('course_id', courseId)) as {
       user_id: string;
