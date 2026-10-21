@@ -53,6 +53,12 @@ export interface CreateTeacherRequest {
   password: string;
 }
 
+/** PATCH /api/teachers/:id (admin). Solo profesores. */
+export interface UpdateTeacherRequest {
+  email: string;
+  fullName: string;
+}
+
 /** PUT /api/teachers/:id/password (admin). Vale para profesores y admins. */
 export interface SetPasswordRequest {
   password: string;

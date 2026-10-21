@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Course, CourseInput, CreateTeacherRequest, Language, SessionStatus } from '@ct/shared';
+import type { Course, CourseInput, CreateTeacherRequest, Language, SessionStatus, UpdateTeacherRequest } from '@ct/shared';
 import {
   ConflictError,
   type AuthUser,
@@ -84,6 +84,22 @@ export class MemoryRepository implements Repository {
     const user: AuthUser = { id: randomUUID(), email: input.email, fullName: input.fullName, role: 'teacher' };
     this.users.set(user.id, user);
     return user;
+  }
+
+  async updateTeacher(id: string, input: UpdateTeacherRequest) {
+    const user = this.users.get(id);
+    if (user?.role !== 'teacher') return null;
+    if ([...this.users.values()].some((u) => u.id !== id && u.email === input.email)) throw new ConflictError('duplicado');
+    Object.assign(user, input);
+    return user;
+  }
+
+  async deleteTeacher(id: string) {
+    if (this.users.get(id)?.role !== 'teacher') return false;
+    this.users.delete(id);
+    for (const c of this.courses.values()) c.teacherIds = c.teacherIds.filter((t) => t !== id);
+    for (const [sid, s] of this.sessions) if (s.teacherId === id) this.sessions.delete(sid);
+    return true;
   }
 
   passwords = new Map<string, string>();

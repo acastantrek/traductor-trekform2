@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router';
+import { SuccessAlertProvider } from './components/SuccessAlert';
 import { AuthProvider, RequireAuth } from './lib/auth';
 import { Admin } from './pages/Admin';
 import { AdminCourses } from './pages/AdminCourses';
@@ -11,38 +12,40 @@ import { Teacher } from './pages/Teacher';
 export default function StaffApp() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="login" element={<Login />} />
-        <Route
-          index
-          element={
-            <RequireAuth>
-              <Dashboard />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="admin"
-          element={
-            <RequireAuth admin>
-              <Admin />
-            </RequireAuth>
-          }
-        >
-          <Route index element={<Navigate to="cursos" replace />} />
-          <Route path="cursos" element={<AdminCourses />} />
-          <Route path="profesores" element={<AdminTeachers />} />
-        </Route>
-        <Route
-          path="t/:id"
-          element={
-            <RequireAuth>
-              <Teacher />
-            </RequireAuth>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <SuccessAlertProvider>
+        <Routes>
+          <Route path="login" element={<Login />} />
+          <Route
+            index
+            element={
+              <RequireAuth>
+                <Dashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="admin"
+            element={
+              <RequireAuth admin>
+                <Admin />
+              </RequireAuth>
+            }
+          >
+            <Route index element={<Navigate to="cursos" replace />} />
+            <Route path="cursos" element={<AdminCourses />} />
+            <Route path="profesores" element={<AdminTeachers />} />
+          </Route>
+          <Route
+            path="t/:id"
+            element={
+              <RequireAuth>
+                <Teacher />
+              </RequireAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </SuccessAlertProvider>
     </AuthProvider>
   );
 }

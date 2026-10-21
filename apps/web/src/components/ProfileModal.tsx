@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
 import { Modal } from './Modal';
 import { Spinner } from './Spinner';
+import { useSuccessAlert } from './SuccessAlert';
 
 const ROLE_LABEL = { admin: 'Administrador', teacher: 'Profesor' } as const;
 
@@ -9,11 +10,10 @@ const ROLE_LABEL = { admin: 'Administrador', teacher: 'Profesor' } as const;
 export function ProfileModal({ open, onClose }: { open: boolean; onClose(): void }) {
   const { me } = useAuth();
   const [changing, setChanging] = useState(false);
-  const [done, setDone] = useState(false);
+  const showAlert = useSuccessAlert();
 
   function close() {
     setChanging(false);
-    setDone(false);
     onClose();
   }
 
@@ -28,28 +28,17 @@ export function ProfileModal({ open, onClose }: { open: boolean; onClose(): void
         <dt>Rol</dt>
         <dd>{ROLE_LABEL[me.role]}</dd>
       </dl>
-      {done && (
-        <p className="success" role="status">
-          Contraseña cambiada.
-        </p>
-      )}
       {changing ? (
         <PasswordForm
           onCancel={() => setChanging(false)}
           onDone={() => {
-            setChanging(false);
-            setDone(true);
+            close();
+            showAlert('Contraseña cambiada correctamente');
           }}
         />
       ) : (
         <div className="row">
-          <button
-            className="btn"
-            onClick={() => {
-              setDone(false);
-              setChanging(true);
-            }}
-          >
+          <button className="btn" onClick={() => setChanging(true)}>
             Cambiar contraseña
           </button>
         </div>

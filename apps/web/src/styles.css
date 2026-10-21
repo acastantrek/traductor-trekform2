@@ -449,21 +449,17 @@ select:focus {
 
 .user-list > li {
   gap: 8px;
-  padding-bottom: 8px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.user-list > li:first-child {
+  padding-top: 0;
 }
 
 .user-list > li:last-child {
   padding-bottom: 0;
   border-bottom: 0;
-}
-
-.password-form {
-  align-items: flex-end;
-}
-
-.password-form .field {
-  flex: 1 1 260px;
 }
 
 /* ---------- Barra de la app ---------- */
@@ -937,4 +933,79 @@ select:focus {
 .profile dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* Aviso de éxito centrado: se cierra con «Aceptar». */
+.alert {
+  width: min(400px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-top: 4px solid var(--ok);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.3);
+}
+
+.alert[open] {
+  animation: alert-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.alert::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.alert-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 24px 24px;
+  text-align: center;
+}
+
+.alert-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--ok);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--ok) 15%, transparent);
+}
+
+.alert-icon .icon {
+  width: 28px;
+  height: 28px;
+  stroke-width: 3;
+}
+
+.alert-message {
+  margin: 8px 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.alert-detail {
+  margin: 0;
+  color: var(--muted);
+}
+
+.alert-body .btn {
+  min-width: 140px;
+  margin-top: 8px;
+}
+
+@keyframes alert-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert[open] {
+    animation: fade-in 0.2s both;
+  }
 }

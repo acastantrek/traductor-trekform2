@@ -1,4 +1,13 @@
-import type { Course, CourseInput, CreateTeacherRequest, Language, SessionStatus, SourceLanguage, TeacherSummary } from '@ct/shared';
+import type {
+  Course,
+  CourseInput,
+  CreateTeacherRequest,
+  Language,
+  SessionStatus,
+  SourceLanguage,
+  TeacherSummary,
+  UpdateTeacherRequest,
+} from '@ct/shared';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   ConflictError,
@@ -106,6 +115,35 @@ export class SupabaseRepository implements Repository {
       throw new Error(`Supabase Auth: ${error?.message ?? 'sin usuario'}`);
     }
     return { id: data.user.id, email: input.email, fullName: input.fullName, role: 'teacher' };
+  }
+
+  private async isTeacher(id: string) {
+    const rows = check(await this.db.from('profiles').select('id').eq('id', id).eq('role', 'teacher'));
+    return rows.length > 0;
+  }
+
+  async updateTeacher(id: string, input: UpdateTeacherRequest): Promise<TeacherSummary | null> {
+    if (!(await this.isTeacher(id))) return null;
+    const { error } = await this.db.auth.admin.updateUserById(id, {
+      email: input.email,
+      email_confirm: true,
+      user_metadata: { full_name: input.fullName },
+    });
+    if (error) {
+      if (error.status === 422 || /already/i.test(error.message)) throw new ConflictError('Ya existe un usuario con ese email');
+      throw new Error(`Supabase Auth: ${error.message}`);
+    }
+    // El trigger solo copia los datos al crear: el perfil se actualiza aparte.
+    ok(await this.db.from('profiles').update({ email: input.email, full_name: input.fullName }).eq('id', id));
+    return { id, email: input.email, fullName: input.fullName, role: 'teacher' };
+  }
+
+  async deleteTeacher(id: string) {
+    if (!(await this.isTeacher(id))) return false;
+    // profiles → course_members y sessions → session_metrics caen en cascada.
+    const { error } = await this.db.auth.admin.deleteUser(id);
+    if (error) throw new Error(`Supabase Auth: ${error.message}`);
+    return true;
   }
 
   async setPassword(userId: string, password: string) {

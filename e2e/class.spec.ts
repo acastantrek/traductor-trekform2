@@ -36,7 +36,10 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await modal.getByLabel('Contraseña inicial').fill(process.env.E2E_PASSWORD!);
   await modal.getByRole('button', { name: 'Crear profesor' }).click();
   await expect(modal).toBeHidden();
-  await expect(admin.getByText(`Cuenta creada para ${teacherEmail}`)).toBeVisible();
+  const alert = admin.getByRole('dialog', { name: 'Profesor creado correctamente' });
+  await expect(alert).toContainText(teacherEmail);
+  await alert.getByRole('button', { name: 'Aceptar' }).click();
+  await expect(alert).toBeHidden();
   await expect(admin.locator('.user-list')).toContainText(teacherEmail);
 
   await admin.getByRole('link', { name: 'Cursos', exact: true }).click();
@@ -45,6 +48,7 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await expect(admin.getByLabel('Idioma del profesor')).toHaveValue('es');
   await admin.getByLabel(teacherName).check();
   await admin.getByRole('button', { name: 'Crear curso' }).click();
+  await admin.getByRole('dialog', { name: 'Curso creado correctamente' }).getByRole('button', { name: 'Aceptar' }).click();
   const card = admin.locator('article', { hasText: course });
   await expect(card).toContainText('Castellano → English, Français');
   await expect(card).toContainText(`Profesores: ${teacherName}`);

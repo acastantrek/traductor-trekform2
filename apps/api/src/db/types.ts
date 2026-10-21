@@ -5,6 +5,7 @@ import type {
   Me,
   SessionStatus,
   TeacherSummary,
+  UpdateTeacherRequest,
 } from '@ct/shared';
 
 export type AuthUser = Me;
@@ -40,6 +41,10 @@ export interface SessionMetrics {
 export interface Repository {
   listTeachers(): Promise<TeacherSummary[]>;
   createTeacher(input: CreateTeacherRequest): Promise<TeacherSummary>;
+  /** null si no existe o no es profesor (los admins no se editan aquí). */
+  updateTeacher(id: string, input: UpdateTeacherRequest): Promise<TeacherSummary | null>;
+  /** Borra la cuenta y, en cascada, sus asignaciones, sesiones y métricas. false si no existe o no es profesor. */
+  deleteTeacher(id: string): Promise<boolean>;
   /** Cambia la contraseña de cualquier usuario (profesor o admin). false si no existe. */
   setPassword(userId: string, password: string): Promise<boolean>;
 

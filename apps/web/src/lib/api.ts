@@ -8,6 +8,7 @@ import type {
   SessionAction,
   TeacherSession,
   TeacherSummary,
+  UpdateTeacherRequest,
 } from '@ct/shared';
 import { apiUrl } from './config';
 
@@ -53,8 +54,11 @@ export const api = {
   teachers: () => request<TeacherSummary[]>('/api/teachers'),
   createTeacher: (input: CreateTeacherRequest) =>
     request<TeacherSummary>('/api/teachers', { method: 'POST', json: input }),
+  updateTeacher: (id: string, input: UpdateTeacherRequest) =>
+    request<TeacherSummary>(`/api/teachers/${encodeURIComponent(id)}`, { method: 'PATCH', json: input }),
   setPassword: (id: string, password: string) =>
     request<void>(`/api/teachers/${encodeURIComponent(id)}/password`, { method: 'PUT', json: { password } }),
+  deleteTeacher: (id: string) => request<void>(`/api/teachers/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   courses: () => request<Course[]>('/api/courses'),
   createCourse: (input: CourseInput) => request<Course>('/api/courses', { method: 'POST', json: input }),

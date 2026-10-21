@@ -1,18 +1,22 @@
 import type { TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { EditIcon, TrashIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
 import { Loader, Spinner } from '../components/Spinner';
+import { useSuccessAlert } from '../components/SuccessAlert';
 import { api } from '../lib/api';
 
 export function AdminTeachers() {
   const [teachers, setTeachers] = useState<TeacherSummary[] | null>(null);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState('');
+  const [editing, setEditing] = useState<TeacherSummary | null>(null);
+  const [deleting, setDeleting] = useState<TeacherSummary | null>(null);
+  const showAlert = useSuccessAlert();
 
   const reload = useCallback(async () => {
     try {
-      // Los admins no son profesores: cambian su contraseña desde «Mi perfil».
+      // Los admins no son profesores.
       setTeachers((await api.teachers()).filter((u) => u.role === 'teacher'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los profesores');
@@ -23,17 +27,20 @@ export function AdminTeachers() {
     void reload();
   }, [reload]);
 
+  /** Cierra los modales, avisa del éxito y recarga la lista. */
+  async function done(message: string, detail?: string) {
+    setCreating(false);
+    setEditing(null);
+    setDeleting(null);
+    showAlert(message, detail);
+    await reload();
+  }
+
   return (
     <section className="stack section">
       <div className="row spread">
         <h2>Profesores</h2>
-        <button
-          className="btn primary"
-          onClick={() => {
-            setCreated('');
-            setCreating(true);
-          }}
-        >
+        <button className="btn primary" onClick={() => setCreating(true)}>
           Nuevo profesor
         </button>
       </div>
@@ -42,120 +49,85 @@ export function AdminTeachers() {
           {error}
         </p>
       )}
-      {created && (
-        <p className="success" role="status">
-          {created}
-        </p>
-      )}
       {teachers === null && !error && <Loader label="Cargando profesores…" />}
       {teachers?.length === 0 && <p className="muted">Aún no hay profesores.</p>}
       {!!teachers?.length && (
         <div className="card">
           <ul className="plain-list user-list">
             {teachers.map((t) => (
-              <UserRow key={t.id} user={t} />
+              <li key={t.id} className="row spread">
+                <span>
+                  {t.fullName || '—'} <span className="muted small">{t.email}</span>
+                </span>
+                <span className="row">
+                  <button
+                    className="btn icon"
+                    aria-label={`Editar ${t.fullName || t.email}`}
+                    title="Editar"
+                    onClick={() => setEditing(t)}
+                  >
+                    <EditIcon />
+                  </button>
+                  <button
+                    className="btn icon danger-hover"
+                    aria-label={`Eliminar ${t.fullName || t.email}`}
+                    title="Eliminar"
+                    onClick={() => setDeleting(t)}
+                  >
+                    <TrashIcon />
+                  </button>
+                </span>
+              </li>
             ))}
           </ul>
         </div>
       )}
       <Modal open={creating} title="Nuevo profesor" onClose={() => setCreating(false)}>
-        <NewTeacher
-          onCreated={async (email) => {
-            setCreating(false);
-            setCreated(`Cuenta creada para ${email}. Comparte la contraseña inicial por un canal seguro.`);
-            await reload();
+        <TeacherForm
+          onSubmit={async (input) => {
+            const t = await api.createTeacher({ ...input, password: input.password ?? '' });
+            await done('Profesor creado correctamente', `Cuenta: ${t.email}. Comparte la contraseña por un canal seguro.`);
           }}
         />
+      </Modal>
+      <Modal open={!!editing} title="Editar profesor" onClose={() => setEditing(null)}>
+        {editing && (
+          <TeacherForm
+            initial={editing}
+            onSubmit={async (input) => {
+              await api.updateTeacher(editing.id, { fullName: input.fullName, email: input.email });
+              if (input.password) await api.setPassword(editing.id, input.password);
+              await done('Cambios guardados correctamente', input.password ? 'Comparte la contraseña por un canal seguro.' : undefined);
+            }}
+          />
+        )}
+      </Modal>
+      <Modal open={!!deleting} title="Eliminar profesor" onClose={() => setDeleting(null)}>
+        {deleting && (
+          <DeleteTeacher
+            teacher={deleting}
+            onCancel={() => setDeleting(null)}
+            onDeleted={() => done('Profesor eliminado correctamente')}
+          />
+        )}
       </Modal>
     </section>
   );
 }
 
-/** Fila de profesor con cambio de contraseña en línea. */
-function UserRow({ user }: { user: TeacherSummary }) {
-  const [open, setOpen] = useState(false);
+/** Alta (con contraseña inicial) o edición de nombre, email y, opcionalmente, contraseña. */
+function TeacherForm({
+  initial,
+  onSubmit,
+}: {
+  initial?: TeacherSummary;
+  onSubmit(input: { fullName: string; email: string; password?: string }): Promise<void>;
+}) {
+  const [fullName, setFullName] = useState(initial?.fullName ?? '');
+  const [email, setEmail] = useState(initial?.email ?? '');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [done, setDone] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  function toggle() {
-    setOpen(!open);
-    setPassword('');
-    setError('');
-    setDone('');
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      await api.setPassword(user.id, password);
-      setOpen(false);
-      setPassword('');
-      setDone('Contraseña cambiada. Compártela por un canal seguro.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cambiar la contraseña');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <li className="stack">
-      <div className="row spread">
-        <span>
-          {user.fullName || '—'} <span className="muted small">{user.email}</span>
-        </span>
-        <button className="btn small" aria-expanded={open} onClick={toggle}>
-          {open ? 'Cancelar' : 'Cambiar contraseña'}
-        </button>
-      </div>
-      {open && (
-        <form className="row password-form" onSubmit={submit}>
-          <label className="field">
-            <span>Nueva contraseña para {user.fullName || user.email}</span>
-            <input
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={128}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoFocus
-            />
-          </label>
-          <button className="btn primary" disabled={busy}>
-            {busy ? (
-              <>
-                <Spinner /> Guardando…
-              </>
-            ) : (
-              'Guardar'
-            )}
-          </button>
-        </form>
-      )}
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
-      {done && (
-        <p className="success small" role="status">
-          {done}
-        </p>
-      )}
-    </li>
-  );
-}
-
-function NewTeacher({ onCreated }: { onCreated(email: string): Promise<void> }) {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // En la edición, la contraseña solo se pide si el admin decide cambiarla.
+  const [withPassword, setWithPassword] = useState(!initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -164,10 +136,9 @@ function NewTeacher({ onCreated }: { onCreated(email: string): Promise<void> }) 
     setError('');
     setBusy(true);
     try {
-      const t = await api.createTeacher({ fullName: fullName.trim(), email: email.trim(), password });
-      await onCreated(t.email);
+      await onSubmit({ fullName: fullName.trim(), email: email.trim(), ...(withPassword ? { password } : {}) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el profesor');
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el profesor');
       setBusy(false);
     }
   }
@@ -182,17 +153,27 @@ function NewTeacher({ onCreated }: { onCreated(email: string): Promise<void> }) 
         <span>Email</span>
         <input type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} required />
       </label>
-      <label className="field">
-        <span>Contraseña inicial</span>
-        <input
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </label>
+      {withPassword ? (
+        <label className="field">
+          <span>{initial ? 'Nueva contraseña' : 'Contraseña inicial'}</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={128}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoFocus={!!initial}
+          />
+        </label>
+      ) : (
+        <div className="row">
+          <button type="button" className="btn small" onClick={() => setWithPassword(true)}>
+            Cambiar contraseña
+          </button>
+        </div>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -202,13 +183,68 @@ function NewTeacher({ onCreated }: { onCreated(email: string): Promise<void> }) 
         <button className="btn primary" disabled={busy}>
           {busy ? (
             <>
-              <Spinner /> Creando…
+              <Spinner /> Guardando…
             </>
+          ) : initial ? (
+            'Guardar cambios'
           ) : (
             'Crear profesor'
           )}
         </button>
       </div>
     </form>
+  );
+}
+
+function DeleteTeacher({
+  teacher,
+  onCancel,
+  onDeleted,
+}: {
+  teacher: TeacherSummary;
+  onCancel(): void;
+  onDeleted(): Promise<void>;
+}) {
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setError('');
+    setBusy(true);
+    try {
+      await api.deleteTeacher(teacher.id);
+      await onDeleted();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el profesor');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack">
+      <p>
+        ¿Eliminar a <strong>{teacher.fullName || teacher.email}</strong>? Se borrará su cuenta, dejará de estar asignado a
+        sus cursos y se borrará su historial de sesiones y métricas. No se puede deshacer.
+      </p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row">
+        <button className="btn danger" disabled={busy} onClick={() => void remove()}>
+          {busy ? (
+            <>
+              <Spinner /> Eliminando…
+            </>
+          ) : (
+            'Eliminar profesor'
+          )}
+        </button>
+        <button className="btn" disabled={busy} onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }

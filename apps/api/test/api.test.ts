@@ -121,6 +121,35 @@ describe('Auth y cursos', () => {
     expect((await call('DELETE', '/api/courses/no-es-uuid', admin)).status).toBe(404);
   });
 
+  it('solo el admin edita profesores; no admins ni emails duplicados', async () => {
+    const path = (id: string) => `/api/teachers/${id}`;
+    const body = { fullName: 'Ana Pérez', email: 'ANA.PEREZ@test.local ' };
+    expect((await call('PATCH', path(teacher.id), undefined, body)).status).toBe(401);
+    expect((await call('PATCH', path(teacher.id), teacher, body)).status).toBe(403);
+    const res = await call('PATCH', path(teacher.id), admin, body);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ fullName: 'Ana Pérez', email: 'ana.perez@test.local', role: 'teacher' });
+    expect((await call('PATCH', path(teacher.id), admin, { ...body, email: outsider.email })).status).toBe(409);
+    expect((await call('PATCH', path(teacher.id), admin, { ...body, fullName: ' ' })).status).toBe(400);
+    expect((await call('PATCH', path(admin.id), admin, body)).status).toBe(404);
+    expect((await call('PATCH', path(randomUUID()), admin, body)).status).toBe(404);
+  });
+
+  it('solo el admin elimina profesores, no admins ni con una clase abierta', async () => {
+    const course = await createCourse([teacher.id, outsider.id]);
+    const path = (id: string) => `/api/teachers/${id}`;
+    expect((await call('DELETE', path(teacher.id), teacher)).status).toBe(403);
+    expect((await call('DELETE', path(admin.id), admin)).status).toBe(404);
+    const res = await call('POST', '/api/sessions', teacher, { courseId: course.id });
+    const session = (await res.json()) as TeacherSession;
+    expect((await call('DELETE', path(teacher.id), admin)).status).toBe(409);
+    expect((await call('POST', `/api/sessions/${session.id}/end`, teacher)).status).toBe(200);
+    expect((await call('DELETE', path(teacher.id), admin)).status).toBe(204);
+    expect(repo.courses.get(course.id)?.teacherIds).toEqual([outsider.id]);
+    expect(repo.sessions.has(session.id)).toBe(false);
+    expect((await call('DELETE', path(teacher.id), admin)).status).toBe(404);
+  });
+
   it('el admin crea profesores y no permite emails duplicados', async () => {
     const body = { email: 'nuevo@test.local', fullName: 'Nuevo', password: 'contraseña-segura' };
     expect((await call('POST', '/api/teachers', admin, body)).status).toBe(201);

@@ -37,6 +37,8 @@ const teacherSchema = z.object({
   password,
 });
 
+const teacherUpdateSchema = teacherSchema.omit({ password: true });
+
 const idParams = z.object({ id: z.string().min(1).max(64) });
 
 function fail(reply: FastifyReply, status: number, error: string, message: string) {
@@ -96,6 +98,26 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     return reply.status(201).send(await repo.createTeacher(parsed.data));
   });
 
+  app.patch('/api/teachers/:id', async (req, reply) => {
+    if (!(await requireUser(req, reply, 'admin'))) return reply;
+    const params = z.object({ id: uuid }).safeParse(req.params);
+    if (!params.success) return fail(reply, 404, 'not_found', 'El profesor no existe');
+    const parsed = teacherUpdateSchema.safeParse(req.body);
+    if (!parsed.success) return fail(reply, 400, 'invalid_body', parsed.error.issues[0]?.message ?? 'Datos no válidos');
+    const teacher = await repo.updateTeacher(params.data.id, parsed.data);
+    return teacher ?? fail(reply, 404, 'not_found', 'El profesor no existe');
+  });
+
+  app.delete('/api/teachers/:id', async (req, reply) => {
+    if (!(await requireUser(req, reply, 'admin'))) return reply;
+    const params = z.object({ id: uuid }).safeParse(req.params);
+    if (!params.success) return fail(reply, 404, 'not_found', 'El profesor no existe');
+    if (registry.hasOpenSession({ teacherId: params.data.id }))
+      return fail(reply, 409, 'session_open', 'El profesor tiene una clase abierta; finalízala antes de eliminarlo');
+    if (!(await repo.deleteTeacher(params.data.id))) return fail(reply, 404, 'not_found', 'El profesor no existe');
+    return reply.status(204).send();
+  });
+
   // Cualquier usuario: profesor o admin (incluido uno mismo).
   app.put('/api/teachers/:id/password', async (req, reply) => {
     if (!(await requireUser(req, reply, 'admin'))) return reply;
@@ -138,7 +160,7 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     if (!(await requireUser(req, reply, 'admin'))) return reply;
     const params = z.object({ id: uuid }).safeParse(req.params);
     if (!params.success) return fail(reply, 404, 'not_found', 'El curso no existe');
-    if (registry.hasOpenSession(params.data.id))
+    if (registry.hasOpenSession({ courseId: params.data.id }))
       return fail(reply, 409, 'session_open', 'El curso tiene una clase abierta; finalízala antes de eliminarlo');
     if (!(await repo.deleteCourse(params.data.id))) return fail(reply, 404, 'not_found', 'El curso no existe');
     return reply.status(204).send();

@@ -4,6 +4,7 @@ import { CourseForm } from '../components/CourseForm';
 import { EditIcon, TrashIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
 import { Loader, Spinner } from '../components/Spinner';
+import { useSuccessAlert } from '../components/SuccessAlert';
 import { api } from '../lib/api';
 
 export function AdminCourses() {
@@ -11,6 +12,7 @@ export function AdminCourses() {
   const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const showAlert = useSuccessAlert();
   const [deleting, setDeleting] = useState<Course | null>(null);
   const [error, setError] = useState('');
 
@@ -56,6 +58,7 @@ export function AdminCourses() {
             onSubmit={async (input) => {
               await api.createCourse(input);
               setCreating(false);
+              showAlert('Curso creado correctamente');
               await reload();
             }}
           />
@@ -74,6 +77,7 @@ export function AdminCourses() {
               onSubmit={async (input) => {
                 await api.updateCourse(c.id, input);
                 setEditing(null);
+                showAlert('Cambios guardados correctamente');
                 await reload();
               }}
             />
@@ -112,6 +116,7 @@ export function AdminCourses() {
             onCancel={() => setDeleting(null)}
             onDeleted={async () => {
               setDeleting(null);
+              showAlert('Curso eliminado correctamente');
               await reload();
             }}
           />
