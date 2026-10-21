@@ -1,4 +1,4 @@
-import type { Me } from '@ct/shared';
+import type { Me, UserRole } from '@ct/shared';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { PageLoader } from '../components/Spinner';
@@ -70,11 +70,15 @@ export function useAuth() {
   return ctx;
 }
 
-export function RequireAuth({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
+/** Página de inicio de cada rol: el admin solo administra; el profesor prepara sus clases. */
+export const homeFor = (me: Me) => (me.role === 'admin' ? '/admin' : '/');
+
+/** Exige sesión y, si se indica, un rol; con otro rol, lleva a su página de inicio. */
+export function RequireAuth({ children, role }: { children: ReactNode; role?: UserRole }) {
   const { me } = useAuth();
   const location = useLocation();
   if (me === undefined) return <PageLoader />;
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (admin && me.role !== 'admin') return <Navigate to="/" replace />;
+  if (role && me.role !== role) return <Navigate to={homeFor(me)} replace />;
   return <>{children}</>;
 }

@@ -25,6 +25,16 @@ test('un profesor no ve administración ni puede entrar en /admin', async ({ pag
   await expect(page).toHaveURL(/\/$/);
 });
 
+test('el admin solo ve la administración y nunca prepara clases', async ({ page }) => {
+  await login(page, adminEmail());
+  await expect(page).toHaveURL(/\/admin\/cursos$/);
+  await expect(page.getByRole('link', { name: 'Mis cursos' })).toHaveCount(0);
+  for (const path of ['/', '/t/abc']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/admin\/cursos$/);
+  }
+});
+
 test('salir cierra la sesión', async ({ page }) => {
   await login(page, adminEmail());
   await page.getByRole('button', { name: 'Salir' }).click();

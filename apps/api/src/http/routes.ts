@@ -180,8 +180,8 @@ export function registerRoutes(app: FastifyInstance, { registry, repo, auth, pro
     const body = z.object({ courseId: uuid }).safeParse(req.body);
     const course = body.success ? await repo.getCourse(body.data.courseId) : null;
     if (!course) return fail(reply, 404, 'not_found', 'El curso no existe');
-    if (user.role !== 'admin' && !course.teacherIds.includes(user.id))
-      return fail(reply, 403, 'forbidden', 'No eres profesor de este curso');
+    if (user.role === 'admin') return fail(reply, 403, 'forbidden', 'Los administradores no preparan clases');
+    if (!course.teacherIds.includes(user.id)) return fail(reply, 403, 'forbidden', 'No eres profesor de este curso');
     if (registry.full) return fail(reply, 503, 'capacity', 'Se ha alcanzado el máximo de sesiones');
 
     const session = registry.create({

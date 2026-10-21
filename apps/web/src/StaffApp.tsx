@@ -18,7 +18,7 @@ export default function StaffApp() {
           <Route
             index
             element={
-              <RequireAuth>
+              <RequireAuth role="teacher">
                 <Dashboard />
               </RequireAuth>
             }
@@ -26,7 +26,7 @@ export default function StaffApp() {
           <Route
             path="admin"
             element={
-              <RequireAuth admin>
+              <RequireAuth role="admin">
                 <Admin />
               </RequireAuth>
             }
@@ -38,7 +38,7 @@ export default function StaffApp() {
           <Route
             path="t/:id"
             element={
-              <RequireAuth>
+              <RequireAuth role="teacher">
                 <Teacher />
               </RequireAuth>
             }

@@ -4,13 +4,11 @@ import { Link, useNavigate } from 'react-router';
 import { AppHeader } from '../components/AppHeader';
 import { Loader, Spinner } from '../components/Spinner';
 import { api } from '../lib/api';
-import { useAuth } from '../lib/auth';
 
 const STATUS_LABEL = { ready: 'Preparada', live: 'En directo', paused: 'Pausada', ended: 'Finalizada' } as const;
 
 /** Paso 2 del flujo del profesor (PRD §5.1): elegir curso y preparar la clase. */
 export function Dashboard() {
-  const { me } = useAuth();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [open, setOpen] = useState<TeacherSession[]>([]);
@@ -68,13 +66,7 @@ export function Dashboard() {
           {courses?.length === 0 && (
             <div className="card">
               <p>No tienes cursos asignados.</p>
-              {me?.role === 'admin' ? (
-                <Link className="btn" to="/admin">
-                  Crear un curso
-                </Link>
-              ) : (
-                <p className="muted small">Pide a un administrador que te asigne a un curso.</p>
-              )}
+              <p className="muted small">Pide a un administrador que te asigne a un curso.</p>
             </div>
           )}
           <div className="cards">

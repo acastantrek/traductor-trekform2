@@ -54,14 +54,15 @@ export default defineConfig({
       command: `npm run dev -w @ct/web -- --port ${WEB_PORT} --strictPort`,
       url: `http://localhost:${WEB_PORT}`,
       reuseExistingServer: false,
-      env: { API_URL: API },
+      // Sin VITE_PUBLIC_APP_URL del .env local: el QR debe apuntar a este mismo servidor.
+      env: { API_URL: API, VITE_PUBLIC_APP_URL: '' },
     },
     {
       command: `npm run build -w @ct/web && npm run preview -w @ct/web -- --port ${BUILD_PORT} --strictPort`,
       url: `http://localhost:${BUILD_PORT}`,
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { VITE_API_URL: API },
+      env: { VITE_API_URL: API, VITE_PUBLIC_APP_URL: '' },
     },
   ],
 });

@@ -176,6 +176,7 @@ describe('Sesiones', () => {
   it('FR-02: solo los profesores del curso pueden crear sesiones y toman los idiomas del curso', async () => {
     const course = await createCourse();
     expect((await call('POST', '/api/sessions', outsider, { courseId: course.id })).status).toBe(403);
+    expect((await call('POST', '/api/sessions', admin, { courseId: course.id })).status).toBe(403);
     const res = await call('POST', '/api/sessions', teacher, { courseId: course.id });
     const session = (await res.json()) as TeacherSession;
     expect(session).toMatchObject({ courseId: course.id, teacherId: teacher.id, targetLanguages: ['en', 'fr'] });

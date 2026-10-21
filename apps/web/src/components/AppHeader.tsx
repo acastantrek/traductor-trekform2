@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router';
-import { useAuth } from '../lib/auth';
+import { homeFor, useAuth } from '../lib/auth';
 import { Logo } from './Logo';
 import { ProfileModal } from './ProfileModal';
 
@@ -11,15 +11,19 @@ export function AppHeader() {
   return (
     <>
       <header className="appbar">
-        <NavLink to="/" className="appbar-brand" aria-label="ClassTranslate · inicio">
+        <NavLink to={homeFor(me)} className="appbar-brand" aria-label="ClassTranslate · inicio">
           <Logo />
           <span className="appbar-product">ClassTranslate</span>
         </NavLink>
         <nav className="appbar-nav">
-          <NavLink to="/" end>
-            Mis cursos
-          </NavLink>
-          {me.role === 'admin' && <NavLink to="/admin">Administración</NavLink>}
+          {/* El admin no prepara clases: solo ve la administración. */}
+          {me.role === 'admin' ? (
+            <NavLink to="/admin">Administración</NavLink>
+          ) : (
+            <NavLink to="/" end>
+              Mis cursos
+            </NavLink>
+          )}
         </nav>
         <div className="appbar-user">
           <button className="appbar-profile" aria-haspopup="dialog" onClick={() => setProfile(true)}>
