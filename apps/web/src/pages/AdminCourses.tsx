@@ -11,7 +11,7 @@ import { api } from '../lib/api';
 export function AdminCourses() {
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Course | null>(null);
   const [creating, setCreating] = useState(false);
   const showAlert = useSuccessAlert();
   const pagination = usePagination(courses);
@@ -40,80 +40,75 @@ export function AdminCourses() {
     <section className="stack section">
       <div className="row spread">
         <h2>Cursos</h2>
-        {!creating && (
-          <button className="btn primary" onClick={() => setCreating(true)}>
-            Nuevo curso
-          </button>
-        )}
+        <button className="btn primary" onClick={() => setCreating(true)}>
+          Nuevo curso
+        </button>
       </div>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
-      {creating && (
-        <div className="card">
+      {courses === null && !error && <Loader label="Cargando cursos…" />}
+      {courses?.length === 0 && <p className="muted">Aún no hay cursos.</p>}
+      {pagination.pageItems?.map((c) => (
+        <article key={c.id} className="card row spread">
+          <div>
+            <h3>{c.name}</h3>
+            <p className="muted small">
+              {LANGUAGES[c.sourceLanguage]} → todos los idiomas
+            </p>
+            <p className="small">
+              Profesores: {teacherNames(c).join(', ') || <em className="muted">ninguno</em>}
+            </p>
+          </div>
+          <div className="row">
+            <button className="btn icon" aria-label={`Editar ${c.name}`} title="Editar" onClick={() => setEditing(c)}>
+              <EditIcon />
+            </button>
+            <button
+              className="btn icon danger-hover"
+              aria-label={`Eliminar ${c.name}`}
+              title="Eliminar"
+              onClick={() => setDeleting(c)}
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </article>
+      ))}
+      <Pagination {...pagination} noun="cursos" onChange={pagination.setPage} />
+      <Modal open={creating} title="Nuevo curso" onClose={() => setCreating(false)}>
+        <CourseForm
+          teachers={teachers}
+          submitLabel="Crear curso"
+          onCancel={() => setCreating(false)}
+          onSubmit={async (input) => {
+            await api.createCourse(input);
+            setCreating(false);
+            // Los cursos van del más reciente al más antiguo: el nuevo queda en la primera página.
+            pagination.setPage(1);
+            showAlert('Curso creado correctamente');
+            await reload();
+          }}
+        />
+      </Modal>
+      <Modal open={!!editing} title="Editar curso" onClose={() => setEditing(null)}>
+        {editing && (
           <CourseForm
+            initial={editing}
             teachers={teachers}
-            submitLabel="Crear curso"
-            onCancel={() => setCreating(false)}
+            submitLabel="Guardar cambios"
+            onCancel={() => setEditing(null)}
             onSubmit={async (input) => {
-              await api.createCourse(input);
-              setCreating(false);
-              // Los cursos van del más reciente al más antiguo: el nuevo queda en la primera página.
-              pagination.setPage(1);
-              showAlert('Curso creado correctamente');
+              await api.updateCourse(editing.id, input);
+              setEditing(null);
+              showAlert('Cambios guardados correctamente');
               await reload();
             }}
           />
-        </div>
-      )}
-      {courses === null && !error && <Loader label="Cargando cursos…" />}
-      {courses?.length === 0 && !creating && <p className="muted">Aún no hay cursos.</p>}
-      {pagination.pageItems?.map((c) =>
-        editing === c.id ? (
-          <div key={c.id} className="card">
-            <CourseForm
-              initial={c}
-              teachers={teachers}
-              submitLabel="Guardar cambios"
-              onCancel={() => setEditing(null)}
-              onSubmit={async (input) => {
-                await api.updateCourse(c.id, input);
-                setEditing(null);
-                showAlert('Cambios guardados correctamente');
-                await reload();
-              }}
-            />
-          </div>
-        ) : (
-          <article key={c.id} className="card row spread">
-            <div>
-              <h3>{c.name}</h3>
-              <p className="muted small">
-                {LANGUAGES[c.sourceLanguage]} → todos los idiomas
-              </p>
-              <p className="small">
-                Profesores: {teacherNames(c).join(', ') || <em className="muted">ninguno</em>}
-              </p>
-            </div>
-            <div className="row">
-              <button className="btn icon" aria-label={`Editar ${c.name}`} title="Editar" onClick={() => setEditing(c.id)}>
-                <EditIcon />
-              </button>
-              <button
-                className="btn icon danger-hover"
-                aria-label={`Eliminar ${c.name}`}
-                title="Eliminar"
-                onClick={() => setDeleting(c)}
-              >
-                <TrashIcon />
-              </button>
-            </div>
-          </article>
-        ),
-      )}
-      <Pagination {...pagination} noun="cursos" onChange={pagination.setPage} />
+        )}
+      </Modal>
       <Modal open={!!deleting} title="Eliminar curso" onClose={() => setDeleting(null)}>
         {deleting && (
           <DeleteCourse
