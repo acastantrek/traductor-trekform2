@@ -1,4 +1,4 @@
-import { LANGUAGES, type Course, type TeacherSummary } from '@ct/shared';
+import type { Course, TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { CourseForm } from '../components/CourseForm';
 import { EditIcon, TrashIcon } from '../components/Icons';
@@ -55,9 +55,6 @@ export function AdminCourses() {
         <article key={c.id} className="card row spread">
           <div>
             <h3>{c.name}</h3>
-            <p className="muted small">
-              {LANGUAGES[c.sourceLanguage]} → todos los idiomas
-            </p>
             <p className="small">
               Profesores: {teacherNames(c).join(', ') || <em className="muted">ninguno</em>}
             </p>

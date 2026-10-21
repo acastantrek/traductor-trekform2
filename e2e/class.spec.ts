@@ -51,7 +51,6 @@ test('clase completa: admin prepara curso, profesor emite y alumnos reciben subt
   await admin.getByRole('button', { name: 'Crear curso' }).click();
   await admin.getByRole('dialog', { name: 'Curso creado correctamente' }).getByRole('button', { name: 'Aceptar' }).click();
   const card = admin.locator('article', { hasText: course });
-  await expect(card).toContainText('Castellano → todos los idiomas');
   await expect(card).toContainText(`Profesores: ${teacherName}`);
   await adminCtx.close();
 
