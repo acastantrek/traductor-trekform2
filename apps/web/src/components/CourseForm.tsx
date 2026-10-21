@@ -9,6 +9,7 @@ import {
   type TeacherSummary,
 } from '@ct/shared';
 import { useState, type FormEvent } from 'react';
+import { Spinner } from './Spinner';
 
 const EMPTY: CourseInput = { name: '', sourceLanguage: 'es', targetLanguages: ['en', 'fr', 'ar', 'ro'], teacherIds: [] };
 
@@ -112,7 +113,13 @@ export function CourseForm({ initial = EMPTY, teachers, submitLabel, onSubmit, o
       )}
       <div className="row">
         <button className="btn primary" disabled={busy || !name.trim() || !selected.length}>
-          {busy ? 'Guardando…' : submitLabel}
+          {busy ? (
+            <>
+              <Spinner /> Guardando…
+            </>
+          ) : (
+            submitLabel
+          )}
         </button>
         {onCancel && (
           <button type="button" className="btn" onClick={onCancel}>

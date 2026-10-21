@@ -13,6 +13,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { AppHeader } from '../components/AppHeader';
+import { Spinner } from '../components/Spinner';
 import { CAPTURE_SAMPLE_RATE, useMicrophone } from '../hooks/useMicrophone';
 import { api, studentUrl } from '../lib/api';
 import { accessToken } from '../lib/supabase';
@@ -49,7 +50,8 @@ export function Teacher() {
   const [fatal, setFatal] = useState('');
   const [error, setError] = useState('');
   const [deviceId, setDeviceId] = useState('');
-  const [busy, setBusy] = useState(false);
+  /** Acción en curso; deshabilita los botones y muestra el spinner en el pulsado. */
+  const [busy, setBusy] = useState<SessionAction | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const socket = useRef<ReconnectingSocket | null>(null);
   const micActive = useRef(false);
@@ -139,7 +141,7 @@ export function Teacher() {
   }
 
   async function act(action: SessionAction) {
-    setBusy(true);
+    setBusy(action);
     setError('');
     try {
       if ((action === 'start' || action === 'resume') && !mic.active) await startMic();
@@ -149,7 +151,7 @@ export function Teacher() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo completar la acción');
     } finally {
-      setBusy(false);
+      setBusy(null);
       setConfirmEnd(false);
     }
   }
@@ -188,7 +190,13 @@ export function Teacher() {
     <main className="page teacher">
       <header className="topbar">
         <div>
-          <h1>{session?.title ?? 'Cargando…'}</h1>
+          <h1>
+            {session?.title ?? (
+              <span className="row">
+                <Spinner /> Cargando…
+              </span>
+            )}
+          </h1>
           {session && (
             <p className="muted">
               {LANGUAGES[session.sourceLanguage]} → {session.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
@@ -228,27 +236,31 @@ export function Teacher() {
           <h2>Clase</h2>
           <div className="actions">
             {status === 'ready' && (
-              <button className="btn primary big" disabled={busy} onClick={() => void act('start')}>
+              <button className="btn primary big" disabled={!!busy} onClick={() => void act('start')}>
+                {busy === 'start' && <Spinner />}
                 Iniciar clase
               </button>
             )}
             {status === 'live' && (
-              <button className="btn big" disabled={busy} onClick={() => void act('pause')}>
+              <button className="btn big" disabled={!!busy} onClick={() => void act('pause')}>
+                {busy === 'pause' && <Spinner />}
                 Pausar
               </button>
             )}
             {status === 'paused' && (
-              <button className="btn primary big" disabled={busy} onClick={() => void act('resume')}>
+              <button className="btn primary big" disabled={!!busy} onClick={() => void act('resume')}>
+                {busy === 'resume' && <Spinner />}
                 Reanudar
               </button>
             )}
             {status !== 'ended' &&
               (confirmEnd ? (
-                <button className="btn danger big" disabled={busy} onClick={() => void act('end')}>
+                <button className="btn danger big" disabled={!!busy} onClick={() => void act('end')}>
+                  {busy === 'end' && <Spinner />}
                   Confirmar finalizar
                 </button>
               ) : (
-                <button className="btn big" disabled={busy} onClick={() => setConfirmEnd(true)}>
+                <button className="btn big" disabled={!!busy} onClick={() => setConfirmEnd(true)}>
                   Finalizar
                 </button>
               ))}

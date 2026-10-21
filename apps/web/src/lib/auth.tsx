@@ -1,6 +1,7 @@
 import type { Me } from '@ct/shared';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { PageLoader } from '../components/Spinner';
 import { api, setTokenProvider } from './api';
 import { accessToken, supabase } from './supabase';
 
@@ -62,7 +63,7 @@ export function useAuth() {
 export function RequireAuth({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const { me } = useAuth();
   const location = useLocation();
-  if (me === undefined) return <main className="page narrow"><p className="muted">Cargando…</p></main>;
+  if (me === undefined) return <PageLoader />;
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (admin && me.role !== 'admin') return <Navigate to="/" replace />;
   return <>{children}</>;

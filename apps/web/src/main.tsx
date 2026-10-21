@@ -1,6 +1,7 @@
 import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
+import { PageLoader } from './components/Spinner';
 import { Student } from './pages/Student';
 import '@fontsource-variable/montserrat';
 import './styles.css';
@@ -17,7 +18,7 @@ createRoot(document.getElementById('root')!).render(
         <Route
           path="*"
           element={
-            <Suspense fallback={<main className="page narrow"><p className="muted">Cargando…</p></main>}>
+            <Suspense fallback={<PageLoader />}>
               <StaffApp />
             </Suspense>
           }

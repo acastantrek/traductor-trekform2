@@ -1,10 +1,11 @@
 import type { TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Modal } from '../components/Modal';
+import { Loader, Spinner } from '../components/Spinner';
 import { api } from '../lib/api';
 
 export function AdminTeachers() {
-  const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
+  const [teachers, setTeachers] = useState<TeacherSummary[] | null>(null);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState('');
@@ -45,13 +46,16 @@ export function AdminTeachers() {
           {created}
         </p>
       )}
-      <div className="card">
-        <ul className="plain-list user-list">
-          {teachers.map((t) => (
-            <UserRow key={t.id} user={t} />
-          ))}
-        </ul>
-      </div>
+      {teachers === null && !error && <Loader label="Cargando profesores…" />}
+      {teachers && (
+        <div className="card">
+          <ul className="plain-list user-list">
+            {teachers.map((t) => (
+              <UserRow key={t.id} user={t} />
+            ))}
+          </ul>
+        </div>
+      )}
       <Modal open={creating} title="Nuevo profesor" onClose={() => setCreating(false)}>
         <NewTeacher
           onCreated={async (email) => {
@@ -125,7 +129,13 @@ function UserRow({ user }: { user: TeacherSummary }) {
             />
           </label>
           <button className="btn primary" disabled={busy}>
-            {busy ? 'Guardando…' : 'Guardar'}
+            {busy ? (
+              <>
+                <Spinner /> Guardando…
+              </>
+            ) : (
+              'Guardar'
+            )}
           </button>
         </form>
       )}
@@ -191,7 +201,13 @@ function NewTeacher({ onCreated }: { onCreated(email: string): Promise<void> }) 
       )}
       <div className="row">
         <button className="btn primary" disabled={busy}>
-          {busy ? 'Creando…' : 'Crear profesor'}
+          {busy ? (
+            <>
+              <Spinner /> Creando…
+            </>
+          ) : (
+            'Crear profesor'
+          )}
         </button>
       </div>
     </form>

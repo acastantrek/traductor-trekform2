@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { Logo } from '../components/Logo';
+import { Spinner } from '../components/Spinner';
 import { useAuth } from '../lib/auth';
 
 export function Login() {
@@ -57,7 +58,13 @@ export function Login() {
           </p>
         )}
         <button className="btn primary big" disabled={busy}>
-          {busy ? 'Entrando…' : 'Entrar'}
+          {busy ? (
+            <>
+              <Spinner /> Entrando…
+            </>
+          ) : (
+            'Entrar'
+          )}
         </button>
       </form>
     </main>

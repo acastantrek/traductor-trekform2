@@ -9,6 +9,7 @@ import {
 } from '@ct/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
+import { PageLoader } from '../components/Spinner';
 import { api, HttpError } from '../lib/api';
 import { connectSocket, wsUrl, type ReconnectingSocket, type SocketState } from '../lib/socket';
 
@@ -151,7 +152,7 @@ export function Student() {
       </main>
     );
   }
-  if (!session) return <main className="page narrow"><p className="muted">Cargando clase…</p></main>;
+  if (!session) return <PageLoader label="Cargando clase…" />;
 
   const allowed = [session.sourceLanguage, ...session.targetLanguages];
 

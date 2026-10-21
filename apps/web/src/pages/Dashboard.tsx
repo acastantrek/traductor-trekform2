@@ -2,6 +2,7 @@ import { LANGUAGES, type Course, type TeacherSession } from '@ct/shared';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AppHeader } from '../components/AppHeader';
+import { Loader, Spinner } from '../components/Spinner';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
@@ -63,7 +64,7 @@ export function Dashboard() {
               {error}
             </p>
           )}
-          {courses === null && !error && <p className="muted">Cargando…</p>}
+          {courses === null && !error && <Loader label="Cargando cursos…" />}
           {courses?.length === 0 && (
             <div className="card">
               <p>No tienes cursos asignados.</p>
@@ -84,7 +85,13 @@ export function Dashboard() {
                   {LANGUAGES[c.sourceLanguage]} → {c.targetLanguages.map((l) => LANGUAGES[l]).join(', ')}
                 </p>
                 <button className="btn primary" disabled={!!busy} onClick={() => void start(c)}>
-                  {busy === c.id ? 'Preparando…' : 'Preparar clase'}
+                  {busy === c.id ? (
+                    <>
+                      <Spinner /> Preparando…
+                    </>
+                  ) : (
+                    'Preparar clase'
+                  )}
                 </button>
               </article>
             ))}

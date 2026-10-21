@@ -1,10 +1,11 @@
 import { LANGUAGES, type Course, type TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { CourseForm } from '../components/CourseForm';
+import { Loader } from '../components/Spinner';
 import { api } from '../lib/api';
 
 export function AdminCourses() {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Course[] | null>(null);
   const [teachers, setTeachers] = useState<TeacherSummary[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -58,8 +59,9 @@ export function AdminCourses() {
           />
         </div>
       )}
-      {courses.length === 0 && !creating && <p className="muted">Aún no hay cursos.</p>}
-      {courses.map((c) =>
+      {courses === null && !error && <Loader label="Cargando cursos…" />}
+      {courses?.length === 0 && !creating && <p className="muted">Aún no hay cursos.</p>}
+      {courses?.map((c) =>
         editing === c.id ? (
           <div key={c.id} className="card">
             <CourseForm
