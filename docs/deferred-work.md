@@ -20,12 +20,12 @@ Tareas aplazadas conscientemente. Al retomar una, se mueve a hecho o se borra.
   - Alumno desde el móvil en la misma Wi-Fi: `http://<IP-del-portátil>:5173/s/<id>`, o definir `VITE_PUBLIC_APP_URL` en `apps/web/.env` para que el QR funcione.
 - **Si el catalán va mal:** probar `DEEPGRAM_MODEL=nova-2`, o valorar otro proveedor STT.
 
-### Clave de Google Translation
-- **Desde:** 2026-10-19
-- **Motivo del aplazamiento:** Google Cloud exige vincular facturación.
-- **Mientras tanto:** la traducción usa el mock (`[en] texto original`).
-- **Pasos:** Console → proyecto → Facturación → habilitar *Cloud Translation API* → Credenciales → *Clave de API* restringida a Cloud Translation API → `GOOGLE_TRANSLATE_API_KEY=` en `.env`. Crear un presupuesto con alerta.
-- **Alternativas, si no se quiere facturación de Google:** DeepL API Free, Azure Translator F0 o LibreTranslate autoalojado (requieren un adaptador nuevo en `apps/api/src/providers/`).
+### Clave de DeepL
+- **Desde:** 2026-10-21 (sustituye a Google Translation, que exige vincular facturación).
+- **Estado:** adaptador hecho (`apps/api/src/providers/deepl.ts`) y clave configurada en local. Falta configurarla en el hosting de la API.
+- **Pasos:** crear una cuenta de la API de DeepL → *API Keys* → `DEEPL_API_KEY=` en `.env` (raíz) y en el hosting de la API. `GET /api/health` debe indicar `translation: deepl`.
+- **Qué validar:** calidad y latencia reales, y consumo de caracteres frente al límite del plan (`chars_translated` en `session_metrics`). Con cuota agotada, DeepL responde HTTP 456 y cuenta como error de proveedor.
+- **Comprobado (2026-10-21):** con la clave real traduce es→en/fr/uk y ca→en, en 200–450 ms por frase.
 
 ### Historial de sesiones y métricas en `/admin`
 - **Desde:** 2026-10-19

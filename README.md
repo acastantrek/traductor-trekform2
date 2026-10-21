@@ -29,7 +29,7 @@ Crea los `.env` con los valores de `npx supabase status`:
 |---|---|
 | `apps/api/.env` | `SUPABASE_URL` (API_URL), `SUPABASE_SECRET_KEY` (SECRET_KEY) |
 | `apps/web/.env` | `VITE_SUPABASE_URL` (API_URL), `VITE_SUPABASE_PUBLISHABLE_KEY` (PUBLISHABLE_KEY) |
-| `.env` (raíz) | `DEEPGRAM_API_KEY`, `GOOGLE_TRANSLATE_API_KEY` (opcionales) |
+| `.env` (raíz) | `DEEPGRAM_API_KEY`, `DEEPL_API_KEY` (opcionales; `GOOGLE_TRANSLATE_API_KEY` como alternativa a DeepL) |
 
 El registro público está desactivado. Crea el primer admin:
 

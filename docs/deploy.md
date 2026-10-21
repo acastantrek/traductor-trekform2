@@ -36,7 +36,7 @@ Variables de entorno:
 | `SUPABASE_SECRET_KEY` | secret key de Supabase |
 | `ALLOWED_ORIGINS` | URL pública de la web, p. ej. `https://classtranslate.vercel.app` (varias separadas por comas) |
 | `DEEPGRAM_API_KEY` | clave de Deepgram |
-| `GOOGLE_TRANSLATE_API_KEY` | clave de Google Translation |
+| `DEEPL_API_KEY` | clave de la API de DeepL (las del plan gratuito terminan en `:fx`). Alternativa: `GOOGLE_TRANSLATE_API_KEY` |
 | `TRUST_PROXY` | `1` detrás del proxy del hosting (Railway/Fly/Render), para que el rate limit vea la IP real |
 | `PORT` | la que indique el hosting (por defecto 3001) |
 
@@ -76,7 +76,7 @@ El resto de profesores y cursos se crean desde `/admin`.
 
 ## 5. Comprobación tras desplegar
 
-- `https://<api>/api/health` → `{"ok":true,"providers":{"stt":"deepgram","translation":"google"}}`.
+- `https://<api>/api/health` → `{"ok":true,"providers":{"stt":"deepgram","translation":"deepl"}}`.
 - Login en la web → crear curso → *Preparar clase* → *Probar micrófono* → *Iniciar clase*.
 - Abrir el QR en un móvil con datos móviles (fuera de la Wi-Fi) y comprobar que llegan los subtítulos.
 

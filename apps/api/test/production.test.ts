@@ -30,6 +30,11 @@ describe('configuración de producción', () => {
     expect([c.stt.provider, c.translation.provider]).toEqual(['deepgram', 'google']);
   });
 
+  it('DeepL tiene prioridad sobre Google si hay las dos claves', () => {
+    expect(loadConfig({ ...prod, DEEPL_API_KEY: 'd:fx' }).translation).toEqual({ provider: 'deepl', apiKey: 'd:fx' });
+    expect(() => loadConfig({ ...prod, TRANSLATION_PROVIDER: 'deepl' })).toThrow(/DEEPL_API_KEY/);
+  });
+
   it('en desarrollo funciona sin claves ni orígenes', () => {
     const c = loadConfig(supabase);
     expect(c).toMatchObject({ production: false, allowedOrigins: ['http://localhost:5173'] });
