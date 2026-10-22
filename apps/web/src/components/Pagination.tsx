@@ -60,7 +60,6 @@ export function Pagination({
         </button>
         <span className="pagination-current" aria-current="page">
           Página {page} de {pages}
-          {page === pages && <span className="pagination-last"> · última</span>}
         </span>
         <button
           className="btn small"

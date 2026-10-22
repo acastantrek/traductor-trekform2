@@ -1358,8 +1358,3 @@ select:focus {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-
-.pagination-last {
-  color: var(--muted);
-  font-weight: 400;
-}
