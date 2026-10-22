@@ -23,12 +23,6 @@ export function usePagination<T>(items: T[] | null, pageSize = PAGE_SIZE) {
   return { page, pages, total, start, pageSize, setPage, pageItems: items?.slice(start, start + pageSize) ?? null };
 }
 
-/** Números visibles: primera, última y las vecinas de la actual; el resto se resume con «…». */
-function pageList(page: number, pages: number): (number | '…')[] {
-  const shown = [...new Set([1, page - 1, page, page + 1, pages])].filter((p) => p >= 1 && p <= pages).sort((a, b) => a - b);
-  return shown.flatMap((p, i) => (i > 0 && p - shown[i - 1]! > 1 ? ['…' as const, p] : [p]));
-}
-
 export function Pagination({
   page,
   pages,
@@ -64,24 +58,16 @@ export function Pagination({
         <button className="btn small" disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Página anterior">
           ‹
         </button>
-        {pageList(page, pages).map((p, i) =>
-          p === '…' ? (
-            <span key={`gap-${i}`} className="pagination-gap" aria-hidden="true">
-              …
-            </span>
-          ) : (
-            <button
-              key={p}
-              className="btn small"
-              aria-current={p === page ? 'page' : undefined}
-              aria-label={`Página ${p}`}
-              onClick={() => go(p)}
-            >
-              {p}
-            </button>
-          ),
-        )}
-        <button className="btn small" disabled={page >= pages} onClick={() => go(page + 1)} aria-label="Página siguiente">
+        <span className="pagination-current" aria-current="page">
+          Página {page} de {pages}
+          {page === pages && <span className="pagination-last"> · última</span>}
+        </span>
+        <button
+          className="btn small"
+          disabled={page >= pages}
+          onClick={() => go(page + 1)}
+          aria-label={page >= pages ? 'Página siguiente (estás en la última página)' : 'Página siguiente'}
+        >
           ›
         </button>
       </div>

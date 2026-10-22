@@ -1322,7 +1322,7 @@ select:focus {
   }
 }
 
-/* Paginación: resumen a la izquierda y páginas a la derecha; la actual en amarillo de marca. */
+/* Paginación: resumen a la izquierda y, a la derecha, ‹ «Página X de Y» ›. */
 .pagination {
   display: flex;
   flex-wrap: wrap;
@@ -1333,24 +1333,33 @@ select:focus {
 
 .pagination-pages {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
 }
 
 .pagination-pages .btn {
-  min-width: 40px;
+  min-width: 44px;
   padding: 6px 10px;
+  font-size: 1.1rem;
 }
 
-.pagination-pages .btn[aria-current='page'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text);
-  cursor: default;
-}
-
-.pagination-gap {
-  padding: 0 4px;
+/* Una flecha deshabilitada se ve vacía y apagada, no solo más clara: así no parece pulsable. */
+.pagination-pages .btn:disabled {
+  opacity: 0.45;
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--muted);
   color: var(--muted);
+}
+
+.pagination-current {
+  min-width: 9.5em;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-last {
+  color: var(--muted);
+  font-weight: 400;
 }
