@@ -9,29 +9,6 @@ Tareas aplazadas conscientemente. Al retomar una, se mueve a hecho o se borra.
 - **Contexto:** desde que todos los cursos ofrecen todos los idiomas, la columna no se usa. La migración `20261021000001_all_languages_per_course.sql` (aplicada en producción el 2026-10-21) solo la hizo opcional, para no romper la API anterior durante el despliegue.
 - **Cuándo:** cuando la API nueva lleve desplegada un tiempo; basta una migración con `alter table public.courses drop column allowed_target_languages;`.
 
-### Prueba real con micrófono y Deepgram (validación F0)
-- **Desde:** 2026-10-19
-- **Motivo del aplazamiento:** no se podía probar con micrófono en ese momento.
-- **Estado:** `DEEPGRAM_API_KEY` configurada en `.env` (raíz). El backend arranca con `stt: deepgram`. Se ha comprobado que Deepgram acepta conexiones `nova-3` en `es` y `ca`, pero todavía no se ha probado con voz real.
-- **Cómo probar:**
-  1. `npx supabase start`, `npm run dev` y abrir http://localhost:5173 (el micrófono solo funciona en `localhost`/HTTPS).
-  2. Entrar con el admin local y crear en `/admin` un curso en castellano y otro en catalán, asignándote como profesor.
-  3. *Preparar clase* → *Probar micrófono* (el medidor debe moverse) → *Iniciar clase*.
-  4. Hablar varias frases, incluidas negaciones, cifras y términos técnicos.
-- **Qué validar (PRD §14, F0):**
-  - Precisión de la transcripción con el micrófono y la sala reales, en castellano y en catalán.
-  - Latencia: indicador del panel; objetivo de mediana ≤ 4 s y p95 ≤ 7 s (NFR-01).
-  - Pausar/Reanudar: la transcripción se detiene y continúa en la misma sala.
-  - Alumno desde el móvil en la misma Wi-Fi: `http://<IP-del-portátil>:5173/s/<id>`, o definir `VITE_PUBLIC_APP_URL` en `apps/web/.env` para que el QR funcione.
-- **Si el catalán va mal:** probar `DEEPGRAM_MODEL=nova-2`, o valorar otro proveedor STT.
-
-### Clave de DeepL
-- **Desde:** 2026-10-21 (sustituye a Google Translation, que exige vincular facturación).
-- **Estado:** adaptador hecho (`apps/api/src/providers/deepl.ts`) y clave configurada en local. Falta configurarla en el hosting de la API.
-- **Pasos:** crear una cuenta de la API de DeepL → *API Keys* → `DEEPL_API_KEY=` en `.env` (raíz) y en el hosting de la API. `GET /api/health` debe indicar `translation: deepl`.
-- **Qué validar:** calidad y latencia reales, y consumo de caracteres frente al límite del plan (`chars_translated` en `session_metrics`). Con cuota agotada, DeepL responde HTTP 456 y cuenta como error de proveedor.
-- **Comprobado (2026-10-21):** con la clave real traduce es→en/fr/uk y ca→en, en 200–450 ms por frase.
-
 ### Historial de sesiones y métricas en `/admin`
 - **Desde:** 2026-10-19
 - **Motivo del aplazamiento:** decisión del usuario; se prioriza otro trabajo.
