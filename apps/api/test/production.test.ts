@@ -72,6 +72,17 @@ describe('servidor en producción', () => {
       ws.on('error', () => {});
     });
 
+  it('CORS: el preflight permite todos los métodos que usa la web', async () => {
+    const base = await start(prod);
+    for (const method of ['PUT', 'PATCH', 'DELETE']) {
+      const res = await fetch(`http://${base}/api/courses/x`, {
+        method: 'OPTIONS',
+        headers: { origin: 'https://app.example.com', 'access-control-request-method': method },
+      });
+      expect(res.headers.get('access-control-allow-methods')).toContain(method);
+    }
+  });
+
   it('WebSocket: rechaza orígenes ajenos antes del upgrade', async () => {
     const base = await start(prod);
     expect(await wsStatus(`ws://${base}/ws/student/x?lang=en`, 'https://evil.example')).toBe('http 403');
