@@ -1,4 +1,4 @@
-import { LANGUAGES, type Course, type TeacherSession } from '@ct/shared';
+import type { Course, TeacherSession } from '@ct/shared';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AppHeader } from '../components/AppHeader';
@@ -73,9 +73,6 @@ export function Dashboard() {
             {courses?.map((c) => (
               <article key={c.id} className="card course-card">
                 <h3>{c.name}</h3>
-                <p className="muted small">
-                  {LANGUAGES[c.sourceLanguage]} → todos los idiomas
-                </p>
                 <button className="btn primary" disabled={!!busy} onClick={() => void start(c)}>
                   {busy === c.id ? (
                     <>
