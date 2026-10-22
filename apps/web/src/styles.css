@@ -194,6 +194,38 @@ select:focus {
   outline-offset: 2px;
 }
 
+/* Contraseña con botón de ojo dentro del campo, a la derecha. */
+.password-input {
+  position: relative;
+  display: flex;
+}
+
+.password-input input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--radius-control);
+}
+
+.password-toggle:hover {
+  color: var(--text);
+}
+
 /* Desplegable de selección múltiple (profesores del curso). */
 .multiselect {
   gap: 0;

@@ -1,6 +1,6 @@
 import type { TeacherSummary } from '@ct/shared';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { EditIcon, TrashIcon } from '../components/Icons';
+import { EditIcon, EyeIcon, EyeOffIcon, TrashIcon } from '../components/Icons';
 import { Modal } from '../components/Modal';
 import { Pagination, usePagination } from '../components/Pagination';
 import { Loader, Spinner } from '../components/Spinner';
@@ -133,6 +133,7 @@ function TeacherForm({
   const [password, setPassword] = useState('');
   // En la edición, la contraseña solo se pide si el admin decide cambiarla.
   const [withPassword, setWithPassword] = useState(!initial);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -161,16 +162,27 @@ function TeacherForm({
       {withPassword ? (
         <label className="field">
           <span>{initial ? 'Nueva contraseña' : 'Contraseña inicial'}</span>
-          <input
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            maxLength={128}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoFocus={!!initial}
-          />
+          <div className="password-input">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={128}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus={!!initial}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </label>
       ) : (
         <div className="row">
